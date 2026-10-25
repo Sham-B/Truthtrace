@@ -23,7 +23,7 @@ TruthTrace strictly upholds the non-negotiable principle: **AI Only Advises**. A
 ## 🌐 Live Demo
 
 - **Frontend (GitHub Pages):** [https://sham-b.github.io/Truthtrace/](https://sham-b.github.io/Truthtrace/)
-- **Backend API (Render Web Service):** [https://truthtrace-api.onrender.com](https://truthtrace-api.onrender.com) *(confirm actual URL in Render)*
+- **Backend API (Render Web Service):** [https://truthtrace-api-l4cs.onrender.com](https://truthtrace-api-l4cs.onrender.com)
 
 > [!NOTE]
 > **Free Tier Sleep & Automatic Reset:** The public demo is hosted on free tiers (GitHub Pages + Render free tier). When inactive for 15 minutes, the Render instance sleeps; the first request takes approximately ~1 minute to wake up while the frontend startup splash displays progress. The Render filesystem is ephemeral; SQLite storage and uploaded test files reset automatically on service reboot. The public demo uses synthetic data only. Anyone can switch roles and test uploads. Do not upload sensitive or real personal documents.

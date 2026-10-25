@@ -1,15 +1,26 @@
 // TruthTrace Global API Helpers
-const apiUrl = window.apiUrl || function(path) {
-  if (!path) return "";
-  if (path.startsWith("http://") || path.startsWith("https://") || path.startsWith("blob:") || path.startsWith("data:")) return path;
-  const base = (window.TRUTHTRACE_CONFIG && window.TRUTHTRACE_CONFIG.API_BASE) || "";
-  const cleanBase = base.replace(/\/+$/, "");
-  const cleanPath = path.startsWith("/") ? path : "/" + path;
-  return cleanBase ? cleanBase + cleanPath : cleanPath;
-};
-const api = window.api || function(path, opts) {
-  return fetch(apiUrl(path), opts);
-};
+var DEFAULT_API_BASE = "https://truthtrace-api-l4cs.onrender.com";
+
+// config.js provides window.apiUrl and window.api. Ensure safe fallbacks without const redeclaration.
+if (typeof window.apiUrl !== "function") {
+  window.apiUrl = function(path) {
+    if (!path) return "";
+    if (path.startsWith("http://") || path.startsWith("https://") || path.startsWith("blob:") || path.startsWith("data:")) return path;
+    const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1" || window.location.hostname === "";
+    const base = (window.TRUTHTRACE_CONFIG && window.TRUTHTRACE_CONFIG.API_BASE) || (isLocal ? "" : DEFAULT_API_BASE);
+    const cleanBase = base.replace(/\/+$/, "");
+    const cleanPath = path.startsWith("/") ? path : "/" + path;
+    return cleanBase ? cleanBase + cleanPath : cleanPath;
+  };
+}
+if (typeof window.api !== "function") {
+  window.api = function(path, opts) {
+    return fetch(window.apiUrl(path), opts);
+  };
+}
+var apiUrl = window.apiUrl;
+var api = window.api;
+
 
 /**
  * TruthTrace UI Controller
@@ -40,6 +51,7 @@ const state = {
   currentRuns: [],
   currentDiff: null,
   diffFilter: "all",
+  backendError: false,
 };
 
 // Bilingual dictionary for Navigation, Actions, and Status Chips
@@ -117,7 +129,7 @@ function showSplashError(title, message, showRetry = true) {
   if (icon) icon.style.display = "block";
   if (titleEl) titleEl.textContent = title;
   if (msgEl) msgEl.textContent = message;
-  if (actionBox) actionBox.style.display = showRetry ? "block" : "none";
+  if (actionBox) actionBox.style.display = showRetry ? "flex" : "none";
 }
 
 function hideSplash() {
@@ -136,16 +148,14 @@ async function checkBackendHealth() {
   const isLocalhost = window.location.hostname === "localhost" ||
                       window.location.hostname === "127.0.0.1" ||
                       window.location.hostname === "";
-  const apiBase = (window.TRUTHTRACE_CONFIG && window.TRUTHTRACE_CONFIG.API_BASE) || "";
+  let apiBase = (window.TRUTHTRACE_CONFIG && window.TRUTHTRACE_CONFIG.API_BASE) || "";
 
-  // If API_BASE is empty on a non-localhost host show a clear "Backend not configured" message
+  // If API_BASE is empty on a non-localhost host, use DEFAULT_API_BASE fallback
   if (!apiBase && !isLocalhost) {
-    showSplashError(
-      "Backend not configured",
-      "TruthTrace frontend is hosted on GitHub Pages, but the backend API URL has not been configured. Please set the API_BASE_URL repository variable in GitHub repository settings.",
-      false
-    );
-    return false;
+    apiBase = DEFAULT_API_BASE;
+    if (window.TRUTHTRACE_CONFIG) {
+      window.TRUTHTRACE_CONFIG.API_BASE = DEFAULT_API_BASE;
+    }
   }
 
   showSplashLoading("Connecting to TruthTrace...", "Waking up the demo server. The first visit can take up to a minute.");
@@ -183,7 +193,7 @@ async function checkBackendHealth() {
   return false;
 }
 
-document.addEventListener("DOMContentLoaded", async () => {
+document.addEventListener("DOMContentLoaded", () => {
   initTheme();
   initTextSize();
   initLanguage();
@@ -191,17 +201,21 @@ document.addEventListener("DOMContentLoaded", async () => {
   setupNavigation();
   setupEventListeners();
 
-  // Health check & startup splash polling
-  const isHealthy = await checkBackendHealth();
-  if (isHealthy) {
-    initDemoStatus();
-    loadDashboardData();
+  // Load dashboard queue immediately so UI is responsive
+  loadDashboardData();
 
-    // Show Welcome Modal on first visit
-    if (!localStorage.getItem("truthtrace-welcome-seen")) {
-      showWelcomeModal();
+  // Health check & startup splash polling in background
+  checkBackendHealth().then((isHealthy) => {
+    if (isHealthy) {
+      initDemoStatus();
+      loadDashboardData();
+
+      // Show Welcome Modal on first visit
+      if (!localStorage.getItem("truthtrace-welcome-seen")) {
+        showWelcomeModal();
+      }
     }
-  }
+  });
 });
 
 // ============================================================================
@@ -490,6 +504,8 @@ function switchView(viewId) {
 
 function setupEventListeners() {
   // Splash Retry and Demo Banner Dismiss Listeners
+  document.getElementById("splashCloseBtn")?.addEventListener("click", hideSplash);
+  document.getElementById("splashDismissBtn")?.addEventListener("click", hideSplash);
   document.getElementById("splashRetryBtn")?.addEventListener("click", async () => {
     const ok = await checkBackendHealth();
     if (ok) {
@@ -771,6 +787,7 @@ async function loadDashboardData() {
     if (!res.ok) throw new Error("Failed to load applications");
     const data = await res.json();
     state.applications = data;
+    state.backendError = false;
 
     // Update Counts & Stat Cards with animated count-up
     updateDashboardStatCards();
@@ -794,7 +811,10 @@ async function loadDashboardData() {
     }
   } catch (err) {
     console.error("Dashboard data load error:", err);
+    state.backendError = true;
     showToast("Error loading application queue", "error");
+    renderAttentionList();
+    renderApplicationsGrid();
   }
 }
 
@@ -860,6 +880,16 @@ function renderAttentionList() {
   });
 
   if (attentionItems.length === 0) {
+    if (state.backendError && (!state.applications || state.applications.length === 0)) {
+      container.innerHTML = `
+        <div style="padding: 24px; text-align: center; color: var(--text-secondary);">
+          <p style="margin-bottom: 8px;">Application status updates unavailable while connecting.</p>
+          <button id="retryAttentionBtn" class="btn-micro-action" style="padding: 6px 14px;">Retry Connection</button>
+        </div>
+      `;
+      document.getElementById("retryAttentionBtn")?.addEventListener("click", () => loadDashboardData());
+      return;
+    }
     container.innerHTML = `
       <div style="padding: 24px; text-align: center; color: var(--green); font-weight: 600;">
         ✓ All submitted applications have passed automated checks.
@@ -985,6 +1015,16 @@ function renderApplicationsGrid() {
   }
 
   if (filtered.length === 0) {
+    if (state.backendError && (!state.applications || state.applications.length === 0)) {
+      grid.innerHTML = `
+        <div style="grid-column: 1 / -1; padding: 40px; text-align: center; color: var(--text-muted); background: var(--card); border-radius: var(--radius-md);">
+          <p style="margin-bottom: 8px;">Failed to load applications from demo backend.</p>
+          <button id="retryAppGridBtn" class="btn-primary" style="padding: 6px 16px;">Retry Connection</button>
+        </div>
+      `;
+      document.getElementById("retryAppGridBtn")?.addEventListener("click", () => loadDashboardData());
+      return;
+    }
     grid.innerHTML = `
       <div style="grid-column: 1 / -1; padding: 40px; text-align: center; color: var(--text-muted); background: var(--card); border-radius: var(--radius-md);">
         No applications match your search and filter criteria.

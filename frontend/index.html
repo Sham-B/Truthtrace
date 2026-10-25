@@ -1669,15 +1669,17 @@
 
   <!-- Startup Splash Overlay -->
   <div id="startupSplash" class="splash-overlay" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="splashTitle">
-    <div class="splash-card">
+    <div class="splash-card" style="position: relative;">
+      <button id="splashCloseBtn" class="demo-public-banner-close" style="position: absolute; top: 12px; right: 14px; font-size: 20px; color: var(--text-muted); background: none; border: none; cursor: pointer;" aria-label="Close dialog">&times;</button>
       <div class="splash-spinner" id="splashSpinner"></div>
       <div class="splash-icon" id="splashIcon" style="display:none; font-size: 38px; margin-bottom: 12px;">⚠️</div>
       <h3 id="splashTitle" style="font-size: 18px; font-weight: 700; margin-bottom: 8px; color: var(--text-primary);">Waking up the demo server</h3>
       <p id="splashMessage" style="font-size: 14px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 16px;">
         Waking up the demo server. The first visit can take up to a minute.
       </p>
-      <div id="splashActionBox" style="display:none;">
-        <button id="splashRetryBtn" class="btn-primary" style="padding: 8px 22px;">Retry Connection</button>
+      <div id="splashActionBox" style="display:none; justify-content: center; gap: 10px; margin-top: 12px;">
+        <button id="splashRetryBtn" class="btn-primary" style="padding: 8px 18px;">Retry Connection</button>
+        <button id="splashDismissBtn" class="btn-micro-action" style="padding: 8px 18px; border: 1px solid var(--border); font-size: 13px;">Explore Offline</button>
       </div>
     </div>
   </div>

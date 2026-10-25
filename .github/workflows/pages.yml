@@ -37,15 +37,17 @@ jobs:
           touch _site/.nojekyll
 
           # Strip trailing slash if present
-          CLEAN_API_BASE="$(echo "${API_BASE_URL:-}" | sed 's:/*$::')"
-          echo "Configuring API_BASE as: ${CLEAN_API_BASE:-<empty / relative>}"
+          CLEAN_API_BASE="$(echo "${API_BASE_URL:-https://truthtrace-api-l4cs.onrender.com}" | sed 's:/*$::')"
+          echo "Configuring API_BASE as: ${CLEAN_API_BASE:-https://truthtrace-api-l4cs.onrender.com}"
 
           cat << 'EOF' > _site/config.template.js
           /**
            * TruthTrace Global Configuration (Injected via GitHub Actions)
            */
+          var DEFAULT_API_BASE = "https://truthtrace-api-l4cs.onrender.com";
+
           window.TRUTHTRACE_CONFIG = {
-            API_BASE: "__API_BASE_PLACEHOLDER__"
+            API_BASE: "__API_BASE_PLACEHOLDER__" || DEFAULT_API_BASE
           };
 
           function apiUrl(path) {
@@ -53,7 +55,7 @@ jobs:
             if (path.startsWith("http://") || path.startsWith("https://") || path.startsWith("blob:") || path.startsWith("data:")) {
               return path;
             }
-            const base = (window.TRUTHTRACE_CONFIG && window.TRUTHTRACE_CONFIG.API_BASE) || "";
+            const base = (window.TRUTHTRACE_CONFIG && window.TRUTHTRACE_CONFIG.API_BASE) || DEFAULT_API_BASE;
             const cleanBase = base.replace(/\/+$/, "");
             const cleanPath = path.startsWith("/") ? path : "/" + path;
             return cleanBase ? cleanBase + cleanPath : cleanPath;

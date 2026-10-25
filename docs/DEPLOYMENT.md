@@ -47,8 +47,8 @@ TruthTrace includes a root-level `render.yaml` Blueprint specification.
    - **Start Command:** `uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT`
    - **Health Check Path:** `/health`
 4. **Click "Apply":** Render builds and deploys the service.
-5. **Copy Backend URL:** Once deployed, copy your Render web service URL (e.g. `https://truthtrace-api.onrender.com`).
-6. **Verify Health:** Visit `https://truthtrace-api.onrender.com/health` in your browser. It should return:
+5. **Copy Backend URL:** Once deployed, copy your Render web service URL (e.g. `https://truthtrace-api-l4cs.onrender.com`).
+6. **Verify Health:** Visit `https://truthtrace-api-l4cs.onrender.com/health` in your browser. It should return:
    ```json
    { "status": "ok", "ready": true, "demo_mode": true }
    ```
@@ -64,7 +64,7 @@ The frontend GitHub Actions workflow (`.github/workflows/pages.yml`) deploys the
    - Go to **Settings** -> **Secrets and variables** -> **Actions** -> **Variables** tab.
    - Click **New repository variable**.
    - **Name:** `API_BASE_URL`
-   - **Value:** `https://truthtrace-api.onrender.com` *(use your exact Render service URL, without trailing slash)*.
+   - **Value:** `https://truthtrace-api-l4cs.onrender.com` *(use your exact Render service URL, without trailing slash)*.
    - Click **Add variable**.
 
 2. **Enable GitHub Pages:**
