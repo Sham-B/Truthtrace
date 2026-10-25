@@ -1,7 +1,7 @@
 import hashlib
 import io
 from pathlib import Path
-from typing import Dict, Any, List, Tuple
+from typing import Dict, Any, List, Tuple, Optional
 import fitz  # PyMuPDF
 from PIL import Image
 import imagehash
