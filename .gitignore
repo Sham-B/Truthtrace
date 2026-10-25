@@ -1,0 +1,53 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+.venv.venv/
+env/
+venv/
+ENV/
+
+# Environment files and secrets
+.env
+*.env
+!.env.example
+.env.local
+.env.*.local
+
+# Storage, database, and generated runtime files
+storage/
+simulations/
+data/*.db
+data/*.sqlite*
+*.db
+*.sqlite
+*.sqlite3
+
+# Test and coverage caches
+.pytest_cache/
+.coverage
+.coverage.*
+.cache/
+nosetests.xml
+coverage.xml
+*.cover
+
+# Model caches and temporary artifacts
+checkpoints/
+models/
+.torch/
+.easyocr/
+
+# Node modules (if any)
+node_modules/
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+desktop.ini
+*.log
+.vscode/
+.idea/
