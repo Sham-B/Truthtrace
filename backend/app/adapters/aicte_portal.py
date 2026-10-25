@@ -16,7 +16,6 @@ REST API Contract Specification:
 """
 
 from typing import Dict, Any, Optional
-import httpx
 from backend.app.models import MockAICTERecord
 
 class AICTEPortalAdapter:

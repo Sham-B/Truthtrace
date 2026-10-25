@@ -1,4 +1,3 @@
-import httpx
 from typing import Dict, Any, Optional
 from backend.app.config import settings
 
@@ -23,6 +22,7 @@ def explain_finding_advisory(
     # 1. Try local Ollama if configured
     if settings.LLM_PROVIDER == "ollama" and settings.OLLAMA_URL:
         try:
+            import httpx
             prompt = (
                 f"You are a regulatory scrutiny AI assistant. Rephrase the following compliance observation "
                 f"into one concise, professional sentence for an AICTE scrutiny officer:\n"
