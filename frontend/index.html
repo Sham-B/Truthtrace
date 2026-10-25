@@ -1,0 +1,1692 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light" data-text-size="normal">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TruthTrace • Application Checking Assistant for AICTE</title>
+  
+  <!-- Font stack rendering Latin, Devanagari (Hindi), and Tamil -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700;800&family=Noto+Sans+Devanagari:wght@400;600;700&family=Noto+Sans+Tamil:wght@400;600;700&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="styles.css">
+  
+  <!-- Local Vendor Libs for 100% Offline Execution -->
+  <script src="vendor/chart.umd.min.js"></script>
+  <script src="vendor/cytoscape.min.js"></script>
+</head>
+<body>
+  <!-- Accessibility Skip Link -->
+  <a href="#mainContent" class="skip-link" id="skipToContentLink">Skip to main content</a>
+
+  <!-- Top Bar -->
+  <header class="top-bar">
+    <div class="top-bar-inner">
+      <div class="brand-section">
+        <a href="#" class="brand-wordmark" id="brandHomeLink" aria-label="TruthTrace Home">
+          <span>TruthTrace</span><span class="accent">•</span>
+        </a>
+        <span class="brand-subtitle" id="headerSubtitle">Application Checking Assistant for AICTE</span>
+      </div>
+
+      <div class="top-controls">
+        <!-- Demo Outage Indicator Pill (Hidden unless chaos outage is ON) -->
+        <div id="demoOutagePill" class="demo-pill-indicator" style="display:none;" title="Demo: issuer server simulated as down">
+          <span class="demo-pill-dot"></span>
+          <span>Demo: issuer server down</span>
+        </div>
+
+        <!-- Accessibility Text Size Zoom Buttons -->
+        <div class="text-zoom-group" aria-label="Text size controls" role="group">
+          <button id="textSizeSmallBtn" class="btn-zoom" title="Smaller text (A-)">A-</button>
+          <button id="textSizeNormalBtn" class="btn-zoom active" title="Standard text (A)">A</button>
+          <button id="textSizeLargeBtn" class="btn-zoom" title="Larger text (A+)">A+</button>
+        </div>
+
+        <!-- Language Switcher -->
+        <button id="langToggleBtn" class="lang-toggle-btn" title="Toggle English / हिन्दी">हिन्दी</button>
+
+        <!-- Light/Dark Mode Switcher -->
+        <button id="themeToggleBtn" class="btn-top-icon" title="Toggle Light / Dark Mode" aria-label="Toggle theme">
+          <span id="themeIcon">🌙</span>
+        </button>
+
+        <!-- Role Selector -->
+        <div class="role-box">
+          <label for="roleSelect" id="roleLabelText">Viewing as:</label>
+          <select id="roleSelect" class="role-select" aria-label="Select user role">
+            <option value="Officer" selected>AICTE Scrutiny Officer</option>
+            <option value="Institution">College (applicant)</option>
+            <option value="Auditor">Auditor</option>
+          </select>
+        </div>
+
+        <!-- Coach-mark Tour Button -->
+        <button id="startTourBtn" class="btn-top-icon" title="Start guided tour (?)" aria-label="Start guided tour">
+          ❓
+        </button>
+
+        <!-- Demo Controls Drawer Toggle Button -->
+        <button id="openDemoDrawerBtn" class="btn-top-icon" title="Demo controls (for presentations only)" aria-label="Open presentation demo controls">
+          ⚙️
+        </button>
+      </div>
+    </div>
+    
+    <!-- Tricolour Accent Line -->
+    <div class="tricolour-line" aria-hidden="true"></div>
+  </header>
+
+  <!-- Slim Public Demo Banner (Visible when demo_mode is True) -->
+  <div id="demoNoticeBanner" class="demo-public-banner" style="display:none;" role="alert">
+    <div class="demo-public-banner-inner">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span class="demo-public-banner-icon">ℹ️</span>
+        <span class="demo-public-banner-text">Public demo with synthetic data. Anyone can switch roles. Do not upload real documents. Data resets automatically.</span>
+      </div>
+      <button id="dismissDemoBannerBtn" class="demo-public-banner-close" aria-label="Dismiss banner">&times;</button>
+    </div>
+  </div>
+
+  <!-- Main Container -->
+  <div class="main-wrapper">
+    <!-- Left Sidebar -->
+    <nav class="app-sidebar" aria-label="Primary navigation">
+      <div class="sidebar-menu">
+        <button class="nav-item-btn active" id="navHome" data-view="viewHome">
+          <span class="nav-icon">🏠</span>
+          <span class="nav-label" data-i18n="nav_home">Home</span>
+        </button>
+
+        <button class="nav-item-btn" id="navApplications" data-view="viewApplications">
+          <span class="nav-icon">📂</span>
+          <span class="nav-label" data-i18n="nav_applications">Applications</span>
+        </button>
+
+        <!-- College Self-Check (Shown for College applicant role) -->
+        <button class="nav-item-btn" id="navPreflight" data-view="viewPreflight" style="display:none;">
+          <span class="nav-icon">📋</span>
+          <span class="nav-label" data-i18n="nav_preflight">Self-check</span>
+        </button>
+
+        <!-- Insights Collapsible Menu (Officer & Auditor Only) -->
+        <div class="insights-section" id="insightsNavSection">
+          <button class="nav-item-btn sub-menu-toggle open" id="navInsightsToggle" aria-expanded="true">
+            <span style="display: flex; align-items: center; gap: 12px;">
+              <span class="nav-icon">📊</span>
+              <span class="nav-label" data-i18n="nav_insights">Insights</span>
+            </span>
+            <span class="chevron-icon">▼</span>
+          </button>
+          
+          <div class="sub-menu-items" id="insightsSubMenu">
+            <button class="sub-nav-item-btn" id="navAlerts" data-view="viewAlerts">
+              <span data-i18n="nav_alerts">Alerts</span>
+              <span class="count-badge" id="alertsCountBadge">0</span>
+            </button>
+            <button class="sub-nav-item-btn" id="navRiskMap" data-view="viewRiskMap" data-tab="tabScatter">
+              <span data-i18n="nav_risk_map">Risk map</span>
+            </button>
+            <button class="sub-nav-item-btn" id="navDuplicates" data-view="viewDuplicates">
+              <span data-i18n="nav_duplicates">Duplicate document check</span>
+            </button>
+            <button class="sub-nav-item-btn" id="navFraudTest" data-view="viewFraudTest" data-tab="tabDrill">
+              <span data-i18n="nav_fraud_test">Fraud detection test</span>
+            </button>
+            <button class="sub-nav-item-btn" id="navAdversarialLab" data-view="viewAdversarialLab" style="display:none;">
+              <span style="display:inline-flex; align-items:center; gap:6px;">
+                <span>🔬</span>
+                <span data-i18n="nav_adversarial_lab">Adversarial Test Lab</span>
+              </span>
+              <span class="status-chip chip-blue" style="font-size: 10px; padding: 2px 6px;">Sandbox</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Activity Log (Officer & Auditor Only) -->
+        <button class="nav-item-btn" id="navAuditLog" data-view="viewAuditLog">
+          <span class="nav-icon">🛡️</span>
+          <span class="nav-label" data-i18n="nav_activity_log">Activity log</span>
+        </button>
+
+        <!-- Help & Glossary -->
+        <button class="nav-item-btn" id="navHelp" data-view="viewHelp">
+          <span class="nav-icon">💡</span>
+          <span class="nav-label" data-i18n="nav_help">Help & Glossary</span>
+        </button>
+      </div>
+
+      <div class="sidebar-footer">
+        <div class="role-indicator-badge">
+          <span>👤</span>
+          <span id="sidebarRoleLabel">AICTE Officer</span>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Main Content Stage -->
+    <main class="main-content" id="mainContent" tabindex="-1">
+      
+      <!-- ===================================================================
+           VIEW 1: Home Dashboard (Officer)
+           =================================================================== -->
+      <section id="viewHome" class="view-panel active" aria-labelledby="homeTitle">
+        <div class="view-header">
+          <div class="view-title-group">
+            <h1 id="homeTitle">Welcome to TruthTrace</h1>
+            <p id="homeSubtitle">Instant regulatory verification assistant for AICTE approval scrutiny</p>
+          </div>
+          <div style="font-size: 13px; color: var(--text-muted);">
+            Last checked: <span id="homeLastCheckedTime">Just now</span>
+          </div>
+        </div>
+
+        <!-- Row of 4 Stat Cards -->
+        <div class="stat-cards-grid">
+          <div class="stat-card card-amber" id="statCardReview" role="button" tabindex="0" title="Click to filter applications needing review">
+            <div class="stat-label">Applications to review</div>
+            <div class="stat-number" id="statNumReview">0</div>
+            <div class="stat-subtext">Needs your attention</div>
+          </div>
+
+          <div class="stat-card card-red" id="statCardProblems" role="button" tabindex="0" title="Click to filter applications with problems">
+            <div class="stat-label">Problems found</div>
+            <div class="stat-number" id="statNumProblems">0</div>
+            <div class="stat-subtext">Signature or content issues</div>
+          </div>
+
+          <div class="stat-card card-blue" id="statCardWaiting" role="button" tabindex="0" title="Click to filter waiting applications">
+            <div class="stat-label">Waiting for issuer</div>
+            <div class="stat-number" id="statNumWaiting">0</div>
+            <div class="stat-subtext">Pending source confirmations</div>
+          </div>
+
+          <div class="stat-card card-green" id="statCardCleared" role="button" tabindex="0" title="Click to filter verified applications">
+            <div class="stat-label">Cleared</div>
+            <div class="stat-number" id="statNumCleared">0</div>
+            <div class="stat-subtext">Fully verified & consistent</div>
+          </div>
+        </div>
+
+        <!-- Attention List and Donut Chart -->
+        <div class="dashboard-grid">
+          <div class="dashboard-card">
+            <h2>
+              <span>Needs your attention</span>
+              <span style="font-size: 13px; font-weight: 500; color: var(--text-secondary);">Highest priority items</span>
+            </h2>
+            <div class="attention-list" id="attentionListContainer">
+              <div style="padding: 20px; text-align: center; color: var(--text-muted);">Loading scrutiny queue...</div>
+            </div>
+          </div>
+
+          <div class="dashboard-card" style="display: flex; flex-direction: column; align-items: center;">
+            <h2>Scrutiny Status Breakdown</h2>
+            <div style="width: 100%; max-width: 260px; height: 240px; position: relative;">
+              <canvas id="statusDonutChart"></canvas>
+            </div>
+            <p style="font-size: 12px; color: var(--text-muted); margin-top: 14px; text-align: center;">
+              Derived from 3-way triangulation across document, tamper, and issuer checks.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================================================================
+           VIEW 2: Applications Queue and Detail Workspace
+           =================================================================== -->
+      <section id="viewApplications" class="view-panel" aria-labelledby="appsTitle">
+        <!-- Sub-panel A: Applications List -->
+        <div id="applicationsListView">
+          <div class="view-header">
+            <div class="view-title-group">
+              <h1 id="appsTitle">Applications Queue</h1>
+              <p>Browse submissions, review automated check results, and record regulatory decisions.</p>
+            </div>
+            <button id="refreshAppsBtn" class="btn-secondary">⟳ Refresh List</button>
+          </div>
+
+          <div class="filter-toolbar">
+            <div class="search-input-wrap">
+              <span class="search-icon">🔍</span>
+              <input type="text" id="appSearchInput" class="search-input" placeholder="Search by college name, PID, or city..." aria-label="Search applications">
+            </div>
+
+            <div class="status-filter-chips" role="group" aria-label="Filter applications by verdict">
+              <button class="chip-filter-btn active" data-filter="all">All (<span id="filterCountAll">5</span>)</button>
+              <button class="chip-filter-btn" data-filter="verified">Verified (<span id="filterCountVerified">1</span>)</button>
+              <button class="chip-filter-btn" data-filter="needs_review">Needs review (<span id="filterCountReview">2</span>)</button>
+              <button class="chip-filter-btn" data-filter="mismatch_detected">Mismatch found (<span id="filterCountMismatch">1</span>)</button>
+              <button class="chip-filter-btn" data-filter="expired">Expired (<span id="filterCountExpired">1</span>)</button>
+            </div>
+          </div>
+
+          <div class="applications-cards-grid" id="applicationsGrid">
+            <!-- Populated dynamically by app.js -->
+          </div>
+        </div>
+
+        <!-- Sub-panel B: Application Detail View (Shown when an application card is clicked) -->
+        <div id="applicationDetailView" style="display:none;">
+          <button id="backToAppsBtn" class="btn-secondary" style="margin-bottom: 16px;">← Back to Applications Queue</button>
+          
+          <!-- Detail Header Card -->
+          <div class="detail-header-card">
+            <div class="detail-title-col">
+              <h2 id="detailCollegeName">Aryabhata Institute of Engineering & Technology</h2>
+              <div class="detail-meta-row">
+                <span id="detailPid">PID: 1-1029384751</span>
+                <span>•</span>
+                <span id="detailCategory">Approval renewal (EoA)</span>
+                <span>•</span>
+                <span id="detailAcademicYear">Academic Year: 2026-2027</span>
+              </div>
+            </div>
+
+            <div class="detail-actions-col">
+              <div id="detailStatusChipContainer">
+                <span class="status-chip chip-green">
+                  <span class="chip-icon">✓</span>
+                  <span>Verified</span>
+                </span>
+                <span class="official-code-text">STATUS_VERIFIED</span>
+              </div>
+              
+              <!-- Exactly 2 Buttons Only -->
+              <button id="runChecksBtn" class="btn-primary">⚡ Run checks</button>
+              <button id="recordDecisionBtn" class="btn-danger">⚖️ Record my decision</button>
+            </div>
+          </div>
+
+          <!-- Highlighted "What to do next" Banner -->
+          <div class="next-action-banner" id="nextActionBanner">
+            <span class="next-action-icon" id="nextActionIcon">💡</span>
+            <div class="next-action-text">
+              <h4 id="nextActionHeading">What to do next</h4>
+              <p id="nextActionBody">All automated checks passed. Review the summary cards and proceed to record your approval order.</p>
+            </div>
+          </div>
+
+          <!-- Exactly 4 Workspace Tabs -->
+          <div class="tabs-navigation-bar" role="tablist">
+            <button class="tab-link-btn active" role="tab" aria-selected="true" data-tab="tabSummary">Summary</button>
+            <button class="tab-link-btn" role="tab" aria-selected="false" data-tab="tabDocuments">Documents</button>
+            <button class="tab-link-btn" role="tab" aria-selected="false" data-tab="tabCrossChecks">Cross-checks</button>
+            <button class="tab-link-btn" role="tab" aria-selected="false" data-tab="tabHistory">History</button>
+          </div>
+
+          <!-- TAB 1: Summary -->
+          <div id="tabSummary" class="detail-tab-pane active" role="tabpanel">
+            <!-- Slim What-Changed Banner (Shown only when 2+ checks exist) -->
+            <div id="summaryDiffBanner" class="slim-diff-banner" style="display:none;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 16px;">🔄</span>
+                <span id="summaryDiffBannerText">Since the last check: 1 fixed, 0 new, 2 still open.</span>
+              </div>
+              <button type="button" id="summarySeeWhatChangedBtn" class="btn-micro-action" style="font-weight: 700; color: var(--navy); border-color: var(--navy);">
+                See what changed →
+              </button>
+            </div>
+
+            <!-- 3 Big Check Cards -->
+            <div class="three-checks-row" id="threeChecksCardsRow">
+              <div class="check-card" id="checkCardDocument">
+                <div class="check-card-top">
+                  <div>
+                    <h3>Document check</h3>
+                    <p class="check-card-sub">Are all papers present, valid and consistent?</p>
+                  </div>
+                  <span class="check-badge check-badge-ok" id="badgeDocumentCheck">OK</span>
+                </div>
+              </div>
+
+              <div class="check-card" id="checkCardTamper">
+                <div class="check-card-top">
+                  <div>
+                    <h3>Tamper check</h3>
+                    <p class="check-card-sub">Does anything look edited or spliced?</p>
+                  </div>
+                  <span class="check-badge check-badge-ok" id="badgeTamperCheck">OK</span>
+                </div>
+              </div>
+
+              <div class="check-card" id="checkCardIssuer">
+                <div class="check-card-top">
+                  <div>
+                    <h3>Issuer check</h3>
+                    <p class="check-card-sub">Did the issuing authority confirm it?</p>
+                  </div>
+                  <span class="check-badge check-badge-ok" id="badgeIssuerCheck">OK</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Finding Cards Section -->
+            <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 12px; color: var(--text-primary);">
+              Findings & Discrepancies (<span id="findingsCountLabel">0</span>)
+            </h3>
+            <div class="findings-container" id="findingsListContainer">
+              <div class="finding-card finding-green" style="border-left-color: var(--green);">
+                <div class="finding-title-row">
+                  <span>✓</span>
+                  <span>All automated document, tamper, and issuer checks passed.</span>
+                </div>
+                <p style="font-size: 13px; color: var(--text-secondary); margin-top: 6px;">
+                  No contradictions, cryptographic signature mismatches, or anomalous typography were detected.
+                </p>
+              </div>
+            </div>
+
+            <!-- Collapsed Limits of This Check -->
+            <div class="limits-panel">
+              <div class="limits-header" id="limitsToggleBtn" role="button" tabindex="0">
+                <span>⚠️ Limits of this check (Forensic & Automation Blind-Spots)</span>
+                <span id="limitsArrowIcon">▼</span>
+              </div>
+              <div class="limits-body" id="limitsBody">
+                <p>
+                  <b>Plain language notice:</b> Automated checks advise but cannot detect all sophisticated manipulations.
+                  High-resolution digital text modifications and lossless vector swaps do not always produce pixel-level compression noise disparities.
+                  For high-stakes regulatory decisions, cryptographic provenance (Ed25519 issuer digital seals), cross-institutional database verification,
+                  and an authenticated AICTE Scrutiny Officer's expert human judgement are legally essential.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 2: Documents Side-by-Side Viewer -->
+          <div id="tabDocuments" class="detail-tab-pane" role="tabpanel">
+            <div class="docs-side-by-side">
+              <!-- Submitted Documents List -->
+              <div class="docs-nav-sidebar">
+                <h3 style="font-size: 14px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">
+                  Submitted Documents
+                </h3>
+                <div id="docsListItems" style="display: flex; flex-direction: column; gap: 8px;">
+                  <!-- Document items populated by app.js -->
+                </div>
+              </div>
+
+              <!-- Center Page Canvas with Zoom Controls & Clickable BBoxes -->
+              <div class="canvas-viewport-col">
+                <div class="canvas-toolbar">
+                  <span id="currentDocTitle" style="font-size: 14px; font-weight: 700;">Document Page Viewer</span>
+                  <div class="zoom-controls">
+                    <button class="btn-zoom-tool" id="docZoomInBtn">Zoom +</button>
+                    <button class="btn-zoom-tool" id="docZoomOutBtn">Zoom -</button>
+                    <button class="btn-zoom-tool" id="docZoomResetBtn">Reset</button>
+                  </div>
+                </div>
+
+                <div class="canvas-display-stage" id="canvasDisplayStage">
+                  <div class="document-page-canvas" id="docPageContainer">
+                    <img id="docPageImage" src="" alt="Document page image render" style="display:none;">
+                    <div class="bbox-highlight-layer" id="bboxHighlightLayer"></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Right Column: Findings for Document -->
+              <div class="doc-findings-col">
+                <h3 style="font-size: 14px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">
+                  Document Findings
+                </h3>
+                <div id="docSpecificFindingsList">
+                  <p style="font-size: 13px; color: var(--text-muted);">Select a document or highlighted region to inspect discrepancies.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 3: Cross-Checks Comparison Table & Cytoscape Graph -->
+          <div id="tabCrossChecks" class="detail-tab-pane" role="tabpanel">
+            <div class="cross-checks-wrap">
+              <div class="cross-checks-toggle-bar">
+                <h3 style="font-size: 16px; font-weight: 700;">Cross-Document Claim Consistency</h3>
+                <button id="toggleGraphViewBtn" class="btn-secondary">Show Interactive Graph</button>
+              </div>
+
+              <!-- Comparison Table -->
+              <div id="crossChecksTableWrap">
+                <table class="cross-checks-table">
+                  <thead>
+                    <tr>
+                      <th>Document A says</th>
+                      <th>Document B says</th>
+                      <th>Consistency Result</th>
+                      <th>Status & Reason</th>
+                    </tr>
+                  </thead>
+                  <tbody id="crossChecksTableBody">
+                    <tr>
+                      <td colspan="4" style="text-align: center; color: var(--text-muted);">Evaluating cross-document concordance...</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Cytoscape Graph Container -->
+              <div id="crossChecksGraphWrap" style="display:none;">
+                <div class="graph-canvas-box" id="cyGraphContainer"></div>
+                <div id="graphNodeDetailsPanel" style="padding: 12px; font-size: 13px; color: var(--text-secondary); background: var(--bg); border-radius: var(--radius-sm); margin-top: 8px;">
+                  Click any document node or relationship edge above to read its plain-language cross-check explanation.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 4: Check History and What Changed -->
+          <div id="tabHistory" class="detail-tab-pane" role="tabpanel">
+            <!-- Top Card: What Changed Since the Last Check -->
+            <div class="dashboard-card what-changed-card" id="whatChangedCard" style="margin-bottom: 20px;">
+              <div class="what-changed-header">
+                <div>
+                  <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">What changed</h3>
+                  <div id="whatChangedExplanation" class="diff-explanation-text" style="margin-top: 4px;">
+                    This is the first check. Changes will appear after the next check.
+                  </div>
+                </div>
+                <span id="whatChangedChecksPill" class="status-chip chip-blue" style="font-size: 11px;">Check #1</span>
+              </div>
+
+              <!-- Three Clickable Filter Tiles -->
+              <div class="diff-tiles-grid" id="diffTilesGrid">
+                <button type="button" class="diff-tile diff-tile-fixed" id="tileFixed" data-filter="resolved" aria-label="Filter fixed findings">
+                  <div class="diff-tile-count" id="countTileFixed">0</div>
+                  <div class="diff-tile-label">Fixed</div>
+                </button>
+                <button type="button" class="diff-tile diff-tile-new" id="tileNew" data-filter="introduced" aria-label="Filter new findings">
+                  <div class="diff-tile-count" id="countTileNew">0</div>
+                  <div class="diff-tile-label">New</div>
+                </button>
+                <button type="button" class="diff-tile diff-tile-open active" id="tileOpen" data-filter="persisting" aria-label="Filter still open findings">
+                  <div class="diff-tile-count" id="countTileOpen">0</div>
+                  <div class="diff-tile-label">Still open</div>
+                </button>
+              </div>
+
+              <!-- Filtered Findings List for Diff -->
+              <div id="diffFindingsContainer" style="margin-top: 14px;">
+                <!-- Populated dynamically by app.js -->
+              </div>
+
+              <!-- Collapsed Fixed Items Group (Never mixed into open list) -->
+              <div class="diff-fixed-group" id="diffFixedGroup" style="display:none;">
+                <div class="diff-fixed-header" id="diffFixedToggle" role="button" tabindex="0">
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <span>✓</span>
+                    <span>Fixed in this check (<span id="fixedItemsCount">0</span>)</span>
+                  </div>
+                  <span id="fixedGroupArrow">▼</span>
+                </div>
+                <div class="diff-fixed-body" id="diffFixedBody">
+                  <div id="fixedItemsList"></div>
+                </div>
+              </div>
+
+              <!-- Progressive Disclosure: Technical details toggle -->
+              <div class="tech-details-box" style="margin-top: 16px;">
+                <div class="tech-details-toggle" id="historyTechToggle" role="button" tabindex="0" onclick="this.nextElementSibling.classList.toggle('open')">
+                  <span>⚙️ Technical details (Compare other checks, Rules version, Snapshot hash)</span>
+                  <span>▼</span>
+                </div>
+                <div class="tech-details-body" id="historyTechBody">
+                  <!-- Compare other checks dropdown -->
+                  <div class="compare-controls-bar">
+                    <span style="font-size: 13px; font-weight: 600;">Compare:</span>
+                    <label style="font-size: 12px; color: var(--text-muted);">From:</label>
+                    <select id="diffSelectFrom" class="role-select" style="font-size: 12px; padding: 4px 8px;"></select>
+                    <label style="font-size: 12px; color: var(--text-muted);">To:</label>
+                    <select id="diffSelectTo" class="role-select" style="font-size: 12px; padding: 4px 8px;"></select>
+                    <button type="button" id="btnCompareChecks" class="btn-micro-action" style="font-weight: 600;">Compare</button>
+                  </div>
+
+                  <!-- Technical Metadata rows -->
+                  <div id="historyTechMeta" style="font-size: 12px; font-family: monospace; color: var(--text-muted); display: flex; flex-direction: column; gap: 6px; margin-top: 8px;">
+                    <!-- Snapshot hash, rules version, checklist id, eval date -->
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Compact Checks List Section -->
+            <div class="dashboard-card" style="margin-bottom: 20px;">
+              <h3 style="font-size: 15px; font-weight: 700; margin-bottom: 12px; color: var(--text-primary);">
+                All Checks for this Application
+              </h3>
+              <div class="checks-history-list" id="checksHistoryList">
+                <div style="padding: 16px; text-align: center; color: var(--text-muted);">Loading checks...</div>
+              </div>
+            </div>
+
+            <!-- Preserved Activity Log Timeline -->
+            <div class="history-timeline-wrap">
+              <div class="timeline-header">
+                <div>
+                  <h3 style="font-size: 15px; font-weight: 700;">Application Activity Timeline</h3>
+                  <p style="font-size: 12px; color: var(--text-secondary);">Human-readable chronological activity log</p>
+                </div>
+                <button id="verifyIntegrityBtn" class="btn-secondary" style="font-size: 12px; padding: 6px 12px;">🛡️ Verify integrity</button>
+              </div>
+
+              <div id="integrityBanner" class="integrity-status-banner integrity-intact" style="display:none;">
+                <span>🛡️</span>
+                <span id="integrityBannerText">Cryptographic SHA-256 hash-chain is intact. Zero tampering detected.</span>
+              </div>
+
+              <div class="timeline-list" id="historyTimelineList">
+                <!-- Timeline items populated by app.js -->
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ===================================================================
+           VIEW 3: Alerts Page (Insights)
+           =================================================================== -->
+      <section id="viewAlerts" class="view-panel" aria-labelledby="alertsTitle">
+        <div class="view-header">
+          <div class="view-title-group">
+            <h1 id="alertsTitle">Regulatory Alerts</h1>
+            <p>High-priority statutory non-compliance alerts grouped by category.</p>
+          </div>
+          <button class="btn-micro-action" title="Explain alerts engine">Explain this ❓</button>
+        </div>
+
+        <div id="alertsGroupContainer" style="display: flex; flex-direction: column; gap: 16px;">
+          <!-- Populated by app.js -->
+        </div>
+      </section>
+
+      <!-- ===================================================================
+           VIEW 4: Risk Map (Insights - Renamed from Assurance x Suspicion)
+           =================================================================== -->
+      <section id="viewRiskMap" class="view-panel" aria-labelledby="riskMapTitle">
+        <div class="view-header">
+          <div class="view-title-group">
+            <h1 id="riskMapTitle">Risk Map</h1>
+            <p>Visualizing Concern vs Confidence across applications. Marker size denotes check completeness.</p>
+          </div>
+          <div style="font-size: 13px; color: var(--text-secondary);">
+            <b>How to read this:</b> Top-left is optimal (High Confidence, Low Concern). Bottom-right requires physical scrutiny committee.
+          </div>
+        </div>
+
+        <div class="dashboard-card" style="padding: 24px;">
+          <div style="height: 480px; width: 100%;">
+            <canvas id="riskMapChartCanvas"></canvas>
+          </div>
+          <div style="display: flex; justify-content: space-around; margin-top: 16px; font-size: 13px; color: var(--text-secondary); text-align: center;">
+            <div>🟢 <b>Looks good:</b> Verified with high confidence</div>
+            <div>🟡 <b>Check carefully:</b> Needs officer clarification</div>
+            <div>🔵 <b>Unclear:</b> Awaiting issuer registry response</div>
+            <div>🔴 <b>Likely problem:</b> Direct tamper or signature conflict</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================================================================
+           VIEW 5: Duplicate Document Check (Insights)
+           =================================================================== -->
+      <section id="viewDuplicates" class="view-panel" aria-labelledby="dupTitle">
+        <div class="view-header">
+          <div class="view-title-group">
+            <h1 id="dupTitle">Duplicate Document Check</h1>
+            <p>Identifies identical registration numbers, shared land deeds, or reused receipts across different colleges.</p>
+          </div>
+          <button id="rescanDuplicatesBtn" class="btn-primary">🔍 Rescan Cross-College Collisions</button>
+        </div>
+
+        <div class="dashboard-card">
+          <div id="duplicatesListContainer" style="display: flex; flex-direction: column; gap: 14px;">
+            <!-- Populated by app.js -->
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================================================================
+           VIEW 6: Fraud Detection Test (Insights - Renamed from Forgery Drill)
+           =================================================================== -->
+      <section id="viewFraudTest" class="view-panel" aria-labelledby="drillTitle">
+        <div class="view-header" style="margin-bottom: 16px;">
+          <div class="view-title-group">
+            <h1 id="drillTitle">Fraud Detection Test</h1>
+            <p>Evaluate pipeline resilience against synthetic attack vectors or interactively simulate attacks in a sandbox.</p>
+          </div>
+          <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+            <div style="display: inline-flex; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 4px; gap: 4px;">
+              <button type="button" id="fraudModeBenchmarkBtn" class="fraud-mode-btn active">Benchmark</button>
+              <button type="button" id="fraudModeSandboxBtn" class="fraud-mode-btn">Try an attack yourself</button>
+            </div>
+            <div id="fraudBenchmarkActions">
+              <button id="runFraudTestBtn" class="btn-primary">⚡ Run Test</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mode 1: Benchmark (10-variant drill table) -->
+        <div id="fraudBenchmarkContainer">
+        <div class="dashboard-card" style="margin-bottom: 20px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px;">
+            <div>
+              <div style="font-size: 13px; color: var(--text-secondary);">BENCHMARK DETECTION HEADLINE</div>
+              <div style="font-size: 26px; font-weight: 800; color: var(--green);" id="fraudHeadlineText">
+                Caught 10 of 10 test forgeries when all three checks are combined
+              </div>
+            </div>
+            <div style="font-size: 13px; color: var(--text-muted); max-width: 400px;">
+              Honest note: Single-lane pixel forensics alone misses lossless vector swaps. Triangulation across cryptographic issuer provenance and temporal cross-checks eliminates the blind spots.
+            </div>
+          </div>
+        </div>
+
+        <!-- 10-Variant Attack Table -->
+        <div class="dashboard-card">
+          <h3 style="font-size: 15px; font-weight: 700; margin-bottom: 12px;">Attack Type vs Detection Check Matrix</h3>
+          <table class="cross-checks-table">
+            <thead>
+              <tr>
+                <th>Attack ID</th>
+                <th>Attack Vector</th>
+                <th>Document Check</th>
+                <th>Tamper Check</th>
+                <th>Issuer Check</th>
+                <th>Final Outcome</th>
+              </tr>
+            </thead>
+            <tbody id="fraudHeatmapBody">
+              <tr>
+                <td colspan="6" style="text-align: center; color: var(--text-muted);">Click 'Run Test' to benchmark detection accuracy across all 10 attack variants.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        </div>
+
+        <!-- Mode 2: Try an attack yourself (Adversarial Sandbox) -->
+        <div id="fraudSandboxContainer" style="display:none;">
+        <!-- Security Access Warning Banner (if Institution role attempts view) -->
+        <div id="advAccessRestrictedBanner" class="dashboard-card card-amber" style="display:none; margin-bottom: 20px;">
+          <div style="display: flex; align-items: center; gap: 14px;">
+            <span style="font-size: 32px;">🔒</span>
+            <div>
+              <h3 style="font-size: 16px; font-weight: 700; color: var(--amber);">Authorized Personnel Only</h3>
+              <p style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">
+                The Adversarial Test Lab is restricted to <b>AICTE Scrutiny Officers</b> and <b>Compliance Auditors</b>.
+                Switch your viewing role in the top header bar to access adversarial simulation and pipeline diagnostics.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div id="advLabMainContent">
+          <div class="view-header">
+            <div class="view-title-group">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <h1 id="advLabTitle">Adversarial Test Lab</h1>
+                <span class="status-chip chip-blue" style="font-size: 11px;">Simulation Sandbox</span>
+              </div>
+              <p id="advLabSubtitle">Simulate advanced forgery vectors in a safe sandbox, execute the multi-lane verification pipelines, and analyze explainable forensic detector verdicts.</p>
+            </div>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+              <button id="advOpenWizardBtn" class="btn-secondary" title="Open guided attack wizard">
+                🧙 Attack Wizard
+              </button>
+              <button id="advExportReportBtn" class="btn-secondary" title="Export printable simulation audit report">
+                📄 Export Report
+              </button>
+              <button id="advResetSandboxBtn" class="btn-secondary" title="Reset sandbox to clean state">
+                🔄 Reset Sandbox
+              </button>
+            </div>
+          </div>
+
+          <!-- Safe Sandbox Isolation Pill -->
+          <div class="adv-sandbox-notice">
+            <span class="adv-notice-icon">🛡️</span>
+            <div>
+              <b>Isolated Temporary Work Session:</b> Adversarial perturbations run exclusively in an ephemeral sandbox.
+              No irreversible modifications are made to the live AICTE application database. Actions are stamped in the tamper-proof cryptographic audit trail.
+            </div>
+          </div>
+
+          <!-- Two-Panel UI Grid -->
+          <div class="adv-two-panel-grid">
+            <!-- LEFT PANEL: Baseline Document & Attack Controls -->
+            <div class="adv-panel adv-left-panel">
+              <div class="adv-panel-header">
+                <span class="adv-panel-step">1</span>
+                <div>
+                  <h3 class="adv-panel-title">Baseline Document & Attack Matrix</h3>
+                  <div class="adv-panel-desc">Select legitimate document and configure simulated attack vectors</div>
+                </div>
+              </div>
+
+              <!-- Document Selection Tabs -->
+              <div class="adv-doc-source-group">
+                <label class="adv-control-label">Select Baseline Regulatory Document</label>
+                <div class="adv-doc-select-wrapper">
+                  <select id="advDocSelect" class="role-select" style="width: 100%; font-size: 13px;">
+                    <option value="base_affidavit" selected>📄 Affidavit prescribed standard (with signatory photo & seal)</option>
+                    <option value="base_lease">📜 Registered Lease Indenture (with Sub-Registrar QR seal)</option>
+                    <option value="base_lab">📸 Lab Facility Geo-Tagged Photo (40 workstations)</option>
+                    <option value="base_ter">💳 TER Regulatory Fee Payment Receipt (INR 100,000)</option>
+                    <option value="base_noc">🏛️ State Government Technical Education NOC</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Upload Custom File Dropzone -->
+              <div class="adv-upload-section">
+                <div class="adv-dropzone" id="advUploadDropzone">
+                  <input type="file" id="advFileInput" accept=".pdf,.png,.jpg,.jpeg,.txt" style="display:none;">
+                  <span style="font-size: 24px;">📁</span>
+                  <div style="font-size: 12px; font-weight: 600;">Drag & drop custom document, or <span style="color: var(--navy); text-decoration: underline; cursor: pointer;" id="advBrowseTrigger">browse</span></div>
+                  <div style="font-size: 11px; color: var(--text-muted);">Supports PDF, PNG, JPG scans (Up to 15MB)</div>
+                </div>
+                <div id="advCustomFileBadge" style="display:none; font-size: 12px; margin-top: 6px; color: var(--green); font-weight: 600;"></div>
+              </div>
+
+              <!-- Baseline Metadata Summary Card -->
+              <div class="adv-base-meta-card" id="advBaseMetaCard">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                  <span id="advBaseDocName" style="font-weight: 700; font-size: 13px;">Affidavit_Standard_Format.pdf</span>
+                  <span id="advBaseDocTypeChip" class="status-chip chip-blue" style="font-size: 10px;">affidavit</span>
+                </div>
+                <div style="font-size: 11px; color: var(--text-muted); font-family: monospace;" id="advBaseDocHash">
+                  SHA-256: 17cd3349...96826
+                </div>
+              </div>
+
+              <!-- Interactive Guidance Quick Suggestions -->
+              <div class="adv-guidance-box">
+                <div class="adv-guidance-title">💡 Guided Attack Shortcuts</div>
+                <div class="adv-guidance-tags">
+                  <button type="button" class="adv-quick-tip-btn" id="tipDeepfake">🎭 Test Deepfake Face Swap</button>
+                  <button type="button" class="adv-quick-tip-btn" id="tipCorruptQR">🔏 Test Forged QR Seal</button>
+                  <button type="button" class="adv-quick-tip-btn" id="tipOverrideName">📝 Test Overridden Signatory</button>
+                  <button type="button" class="adv-quick-tip-btn" id="tipNoiseSkew">📐 Test Scanning Degradation</button>
+                  <button type="button" class="adv-quick-tip-btn" id="tipMetadata">🎨 Test Canva/Photoshop Tag</button>
+                </div>
+              </div>
+
+              <!-- Attack Configuration Controls -->
+              <div class="adv-attack-controls-card">
+                <div class="adv-controls-header">
+                  <h4 style="font-size: 14px; font-weight: 700; color: var(--navy);">Adversarial Vectors</h4>
+                  <span style="font-size: 11px; color: var(--text-muted);" id="advActiveAttacksCount">0 active attacks</span>
+                </div>
+
+                <!-- Attack 1: Deepfake Photo (GAN Face Swap) -->
+                <div class="adv-control-row">
+                  <div class="adv-toggle-group">
+                    <label class="switch" for="advToggleDeepfake">
+                      <input type="checkbox" id="advToggleDeepfake">
+                      <span class="slider round"></span>
+                    </label>
+                    <div class="adv-control-text">
+                      <div class="adv-control-title">Deepfake Photo (GAN Face Swap)</div>
+                      <div class="adv-control-sub">Synthesizes AI face swap with frequency-domain spectral roll-off anomalies</div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Slider for Deepfake Intensity (Visible when Deepfake is enabled) -->
+                <div class="adv-slider-subrow" id="advDeepfakeSliderRow" style="display:none;">
+                  <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px;">
+                    <span style="color: var(--text-secondary);">GAN Perturbation Intensity:</span>
+                    <span id="advDeepfakeIntensityVal" style="font-weight: 700;">85%</span>
+                  </div>
+                  <input type="range" id="advSliderDeepfakeIntensity" min="50" max="100" value="85" class="adv-range-slider">
+                </div>
+
+                <!-- Attack 2: Override Name / Text -->
+                <div class="adv-control-row">
+                  <div class="adv-field-group">
+                    <label for="advInputOverrideName" class="adv-control-title">Override Name / Claim Field</label>
+                    <div style="display: flex; gap: 8px; margin-top: 4px;">
+                      <input type="text" id="advInputOverrideName" class="adv-text-input" placeholder="e.g. Dr. Devadatta Verma or 99 Years Perpetual">
+                      <button type="button" id="advQuickFillNameBtn" class="btn-micro-action" style="white-space: nowrap;">Fill Sample</button>
+                    </div>
+                    <div class="adv-control-sub" style="margin-top: 4px;">Whites out original text and splices mismatched Courier typography</div>
+                  </div>
+                </div>
+
+                <!-- Attack 3: Scanning Noise Slider -->
+                <div class="adv-control-row">
+                  <div class="adv-slider-group">
+                    <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px;">
+                      <span class="adv-control-title">Scanner Sensor Noise (Perturbation)</span>
+                      <span id="advNoiseVal" class="adv-badge-val">0%</span>
+                    </div>
+                    <input type="range" id="advSliderNoise" min="0" max="100" value="0" class="adv-range-slider">
+                    <div class="adv-control-sub">Injects Gaussian noise across pixels to evaluate sensor Laplacian consistency</div>
+                  </div>
+                </div>
+
+                <!-- Attack 4: Rotation & Mechanical Skew Slider -->
+                <div class="adv-control-row">
+                  <div class="adv-slider-group">
+                    <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px;">
+                      <span class="adv-control-title">Mechanical Feed Rotation / Skew</span>
+                      <span id="advRotationVal" class="adv-badge-val">0.0°</span>
+                    </div>
+                    <input type="range" id="advSliderRotation" min="-15" max="15" step="0.5" value="0" class="adv-range-slider">
+                    <div class="adv-control-sub">Applies mechanical feed angle rotation (-15° to +15°) to simulate crooked scans</div>
+                  </div>
+                </div>
+
+                <!-- Attack 5: Cryptographic QR Signature Forgery -->
+                <div class="adv-control-row">
+                  <div class="adv-toggle-group">
+                    <label class="switch" for="advToggleCorruptQR">
+                      <input type="checkbox" id="advToggleCorruptQR">
+                      <span class="slider round"></span>
+                    </label>
+                    <div class="adv-control-text">
+                      <div class="adv-control-title">Corrupt Ed25519 QR Signature</div>
+                      <div class="adv-control-sub">Injects malformed or invalid digital signature in embedded authority seal</div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Attack 6: Spoof Metadata (Canva / Photoshop) -->
+                <div class="adv-control-row">
+                  <div class="adv-toggle-group">
+                    <label class="switch" for="advToggleSpoofMeta">
+                      <input type="checkbox" id="advToggleSpoofMeta">
+                      <span class="slider round"></span>
+                    </label>
+                    <div class="adv-control-text">
+                      <div class="adv-control-title">Spoof PDF Metadata (Photoshop / Canva)</div>
+                      <div class="adv-control-sub">Injects desktop editor producer tags and incremental revision markers</div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Attack 7: JPEG Recompression (ELA Disparity) -->
+                <div class="adv-control-row">
+                  <div class="adv-toggle-group">
+                    <label class="switch" for="advToggleDoubleJpeg">
+                      <input type="checkbox" id="advToggleDoubleJpeg">
+                      <span class="slider round"></span>
+                    </label>
+                    <div class="adv-control-text">
+                      <div class="adv-control-title">Dual-Pass JPEG Recompression</div>
+                      <div class="adv-control-sub">Triggers Error Level Analysis (ELA) localized recompression disparity</div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Attack 8: Visual Patch Copy-Move (ORB) -->
+                <div class="adv-control-row">
+                  <div class="adv-toggle-group">
+                    <label class="switch" for="advToggleCopyMove">
+                      <input type="checkbox" id="advToggleCopyMove">
+                      <span class="slider round"></span>
+                    </label>
+                    <div class="adv-control-text">
+                      <div class="adv-control-title">Visual Patch Copy-Move Splicing</div>
+                      <div class="adv-control-sub">Clones canvas patches to trigger ORB feature keypoint matching probe</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Main Execution Action Bar -->
+              <div class="adv-action-bar">
+                <button id="advRunSimBtn" class="btn-primary" style="flex: 2; padding: 12px 18px; font-size: 14px; font-weight: 700;">
+                  ⚡ Run Verification Pipeline
+                </button>
+                <button id="advClearAttacksBtn" class="btn-secondary" style="flex: 1; padding: 12px 14px; font-size: 13px;">
+                  Reset Attacks
+                </button>
+              </div>
+            </div>
+
+            <!-- RIGHT PANEL: Modified Document & Verification Pipeline Verdict -->
+            <div class="adv-panel adv-right-panel">
+              <div class="adv-panel-header">
+                <span class="adv-panel-step">2</span>
+                <div>
+                  <h3 class="adv-panel-title">Verification Pipeline & Anomaly Feedback</h3>
+                  <div class="adv-panel-desc">Real-time detector outcomes, plain-language explanations & counterfactual hints</div>
+                </div>
+              </div>
+
+              <!-- Document Viewer Tabs (Modified vs Side-by-Side Diff) -->
+              <div class="adv-viewer-container">
+                <div class="adv-viewer-toolbar">
+                  <div class="adv-view-tabs" role="tablist">
+                    <button class="adv-tab-btn active" id="advTabModified" data-mode="modified">Modified Preview</button>
+                    <button class="adv-tab-btn" id="advTabDiff" data-mode="diff">Original vs Modified Diff</button>
+                  </div>
+                  <div style="font-size: 11px; color: var(--text-muted);" id="advRenderMetaText">
+                    Rendered at 150 DPI
+                  </div>
+                </div>
+
+                <!-- Canvas Viewer Stage -->
+                <div class="adv-canvas-stage" id="advCanvasStage">
+                  <!-- Single View -->
+                  <div id="advSingleViewWrapper" class="adv-view-wrapper">
+                    <div class="adv-img-container" id="advImgContainer">
+                      <img id="advModifiedImg" src="" alt="Simulated Document Preview" class="adv-preview-img" style="display:none;">
+                      <div id="advImgPlaceholder" class="adv-placeholder">
+                        <span style="font-size: 36px;">🧪</span>
+                        <div style="font-weight: 600; margin-top: 8px;">Adversarial Sandbox Ready</div>
+                        <div style="font-size: 12px; color: var(--text-muted); max-width: 320px; margin-top: 4px;">
+                          Select attacks on the left panel and click <b>'Run Verification Pipeline'</b> to evaluate detector responses.
+                        </div>
+                      </div>
+                      <!-- Bounding Box Overlays Container -->
+                      <div id="advOverlayLayer" class="adv-overlay-layer"></div>
+                    </div>
+                  </div>
+
+                  <!-- Side-by-Side Diff View -->
+                  <div id="advDiffViewWrapper" class="adv-diff-wrapper" style="display:none;">
+                    <div class="adv-diff-col">
+                      <div class="adv-diff-label">Clean Original Baseline</div>
+                      <img id="advDiffCleanImg" src="" alt="Clean Baseline" class="adv-diff-img">
+                    </div>
+                    <div class="adv-diff-col">
+                      <div class="adv-diff-label">Simulated Modified Version</div>
+                      <img id="advDiffModImg" src="" alt="Simulated Modified" class="adv-diff-img">
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Triangulation Executive Scorecard -->
+              <div class="adv-scorecard-card" id="advScorecardCard" style="display:none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                  <div>
+                    <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); letter-spacing: 0.5px;">OVERALL SCRUTINY VERDICT</div>
+                    <div style="display: flex; align-items: center; gap: 10px; margin-top: 2px;">
+                      <span id="advOverallStatusChip" class="status-chip chip-green" style="font-size: 13px; font-weight: 700;">Verified</span>
+                      <span id="advOverallVerdictText" style="font-size: 14px; font-weight: 600;">All Automated Checks Cleared</span>
+                    </div>
+                  </div>
+                  <div class="adv-scores-meters">
+                    <div class="adv-meter-group">
+                      <div style="display: flex; justify-content: space-between; font-size: 11px; font-weight: 600;">
+                        <span>Assurance Score:</span>
+                        <span id="advAssuranceScoreVal" style="color: var(--green);">100%</span>
+                      </div>
+                      <div class="adv-meter-track"><div id="advAssuranceBar" class="adv-meter-fill fill-green" style="width: 100%;"></div></div>
+                    </div>
+                    <div class="adv-meter-group">
+                      <div style="display: flex; justify-content: space-between; font-size: 11px; font-weight: 600;">
+                        <span>Suspicion Score:</span>
+                        <span id="advSuspicionScoreVal" style="color: var(--red);">0%</span>
+                      </div>
+                      <div class="adv-meter-track"><div id="advSuspicionBar" class="adv-meter-fill fill-red" style="width: 0%;"></div></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Anomaly Detectors Breakdown Matrix -->
+              <div class="adv-detectors-section">
+                <div class="adv-detectors-header">
+                  <h4 style="font-size: 14px; font-weight: 700; color: var(--navy);">Multi-Lane Anomaly Detectors</h4>
+                  <div style="font-size: 12px; color: var(--text-muted);">
+                    <span id="advDetectorsPassCount" style="color: var(--green); font-weight: 700;">8 Passed</span> • 
+                    <span id="advDetectorsFlagCount" style="color: var(--red); font-weight: 700;">0 Flagged</span>
+                  </div>
+                </div>
+
+                <!-- Detector Cards List -->
+                <div class="adv-detectors-list" id="advDetectorsList">
+                  <div class="adv-empty-detectors-note">
+                    Run the verification pipeline to view individual anomaly detector evaluations.
+                  </div>
+                </div>
+              </div>
+
+              <!-- Cryptographic Chain-of-Custody Box -->
+              <div class="adv-custody-card" id="advCustodyCard" style="display:none;">
+                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 18px;">🛡️</span>
+                    <div>
+                      <div style="font-size: 12px; font-weight: 700; color: var(--navy);">Cryptographic Audit Trail Stamp</div>
+                      <div style="font-size: 11px; color: var(--text-muted);" id="advCustodySessionText">Session ID: SIM-XXXXXXXX • Stamped in SHA-256 hash-chain</div>
+                    </div>
+                  </div>
+                  <button id="advExportReportBottomBtn" class="btn-micro-action" style="font-weight: 600;">
+                    📥 Export Report
+                  </button>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+        </div>
+      </section>
+
+      <!-- Compatibility alias for Adversarial Lab -->
+      <section id="viewAdversarialLab" class="view-panel" style="display:none;"></section>
+
+      <!-- ===================================================================
+           VIEW 7: Activity Log (Auditor & Officer)
+           =================================================================== -->
+      <section id="viewAuditLog" class="view-panel" aria-labelledby="auditTitle">
+        <div class="view-header">
+          <div class="view-title-group">
+            <h1 id="auditTitle">Cryptographic Activity Log</h1>
+            <p>Tamper-proof SHA-256 hash-chained ledger of every automated scrutiny and human officer order.</p>
+          </div>
+          <div style="display: flex; gap: 10px;">
+            <button id="verifyAuditChainBtn" class="btn-secondary">🛡️ Verify Log Integrity</button>
+            <button id="simulateTamperDemoBtn" class="btn-secondary" style="border-color: var(--amber); color: var(--amber);">⚡ Pretend database was altered (Demo)</button>
+          </div>
+        </div>
+
+        <div id="auditChainVerifyStatusBanner" class="integrity-status-banner integrity-intact" style="display:none; margin-bottom: 16px;"></div>
+
+        <div class="dashboard-card" style="overflow-x: auto;">
+          <table class="cross-checks-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Timestamp (UTC)</th>
+                <th>Actor Role</th>
+                <th>Action</th>
+                <th>Payload Digest</th>
+                <th>SHA-256 Current Hash</th>
+              </tr>
+            </thead>
+            <tbody id="auditLedgerTableBody">
+              <!-- Populated by app.js -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ===================================================================
+           VIEW 8: Help and Glossary
+           =================================================================== -->
+      <section id="viewHelp" class="view-panel" aria-labelledby="helpTitle">
+        <div class="view-header">
+          <div class="view-title-group">
+            <h1 id="helpTitle">Help & Glossary</h1>
+            <p>How TruthTrace works, plain-language terminology guide, and user role specifications.</p>
+          </div>
+        </div>
+
+        <!-- 6-Step Visual Diagram -->
+        <div class="dashboard-card" style="margin-bottom: 24px;">
+          <h2 style="margin-bottom: 16px;">How TruthTrace Validates an Application (6 Steps)</h2>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px;">
+            <div style="background: var(--bg); padding: 14px; border-radius: var(--radius-md); border-top: 4px solid var(--navy);">
+              <div style="font-size: 20px;">1️⃣</div>
+              <h4 style="font-size: 14px; font-weight: 700; margin-top: 6px;">Upload Papers</h4>
+              <p style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">College uploads statutory affidavits, land deeds, NOCs, and TER receipts.</p>
+            </div>
+            <div style="background: var(--bg); padding: 14px; border-radius: var(--radius-md); border-top: 4px solid var(--blue);">
+              <div style="font-size: 20px;">2️⃣</div>
+              <h4 style="font-size: 14px; font-weight: 700; margin-top: 6px;">Document Check</h4>
+              <p style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">OCR extracts structured fields and cross-checks them against AICTE master records.</p>
+            </div>
+            <div style="background: var(--bg); padding: 14px; border-radius: var(--radius-md); border-top: 4px solid var(--amber);">
+              <div style="font-size: 20px;">3️⃣</div>
+              <h4 style="font-size: 14px; font-weight: 700; margin-top: 6px;">Tamper Check</h4>
+              <p style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Forensic scans detect spliced text, high-frequency noise disparities, and PDF metadata edits.</p>
+            </div>
+            <div style="background: var(--bg); padding: 14px; border-radius: var(--radius-md); border-top: 4px solid var(--green);">
+              <div style="font-size: 20px;">4️⃣</div>
+              <h4 style="font-size: 14px; font-weight: 700; margin-top: 6px;">Issuer Check</h4>
+              <p style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Ed25519 digital signatures in QR seals authenticate directly against issuing authority ledgers.</p>
+            </div>
+            <div style="background: var(--bg); padding: 14px; border-radius: var(--radius-md); border-top: 4px solid var(--saffron);">
+              <div style="font-size: 20px;">5️⃣</div>
+              <h4 style="font-size: 14px; font-weight: 700; margin-top: 6px;">Advisory Report</h4>
+              <p style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Triangulation scores confidence and concern, presenting plain English next steps.</p>
+            </div>
+            <div style="background: var(--bg); padding: 14px; border-radius: var(--radius-md); border-top: 4px solid var(--navy);">
+              <div style="font-size: 20px;">6️⃣</div>
+              <h4 style="font-size: 14px; font-weight: 700; margin-top: 6px;">Officer Order</h4>
+              <p style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Human scrutiny officer enters a reasoned legal decision, permanently hash-chained into history.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Plain Language Glossary -->
+        <div class="dashboard-card" style="margin-bottom: 24px;">
+          <h2 style="margin-bottom: 14px;">Plain-Language Glossary</h2>
+          <table class="cross-checks-table">
+            <thead>
+              <tr>
+                <th style="width: 25%;">Plain Term Used Here</th>
+                <th style="width: 25%;">Technical Term</th>
+                <th>What It Means (in Plain Language)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><b>Document check</b></td>
+                <td>Content Lane & Rules Engine</td>
+                <td>Checks whether all mandatory papers are submitted and match AICTE master records.</td>
+              </tr>
+              <tr>
+                <td><b>Tamper check</b></td>
+                <td>Pixel & Metadata Forensics</td>
+                <td>Analyzes image compression artifacts (ELA), noise differences, and metadata tags for unauthorized edits.</td>
+              </tr>
+              <tr>
+                <td><b>Issuer check</b></td>
+                <td>Cryptographic Provenance</td>
+                <td>Verifies digital signatures embedded in QR codes against the original government issuing registry.</td>
+              </tr>
+              <tr>
+                <td><b>Risk map</b></td>
+                <td>Assurance × Suspicion Plot</td>
+                <td>Plots how confident we are in positive findings versus concerns flagged by forensic scans.</td>
+              </tr>
+              <tr>
+                <td><b>Activity log</b></td>
+                <td>SHA-256 Hash-Chained Audit Trail</td>
+                <td>A tamper-proof ledger where each log row references the previous row's cryptographic fingerprint.</td>
+              </tr>
+              <tr>
+                <td><b>Fraud detection test</b></td>
+                <td>Adversarial Forgery Drill</td>
+                <td>A benchmark test running 10 deliberate sample document tampering variants to verify detection accuracy.</td>
+              </tr>
+              <tr>
+                <td><b>Check #N</b></td>
+                <td>Validation Run Version</td>
+                <td>An official, immutable snapshot of exactly what was evaluated on a given date.</td>
+              </tr>
+              <tr>
+                <td><b>What changed</b></td>
+                <td>Validation Finding Diff</td>
+                <td>A side-by-side comparison between checks showing what was resolved, newly found, or still open.</td>
+              </tr>
+              <tr>
+                <td><b>Fixed</b></td>
+                <td>Resolved Deficiency</td>
+                <td>A discrepancy that was flagged in an earlier check but has now been verified as resolved.</td>
+              </tr>
+              <tr>
+                <td><b>New</b></td>
+                <td>Introduced Deficiency</td>
+                <td>A newly flagged discrepancy that was not present in the earlier check.</td>
+              </tr>
+              <tr>
+                <td><b>Still open</b></td>
+                <td>Persisting Finding</td>
+                <td>An unresolved discrepancy that was present in the prior check and remains active in this check.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- "Who is who" Panel -->
+        <div class="dashboard-card">
+          <h2 style="margin-bottom: 14px;">Who is Who: System Roles</h2>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px;">
+            <div style="background: var(--bg); padding: 16px; border-radius: var(--radius-md);">
+              <h3 style="color: var(--navy); font-size: 15px;">🏛️ AICTE Scrutiny Officer</h3>
+              <p style="font-size: 13px; color: var(--text-secondary); margin-top: 6px;">
+                AICTE officers review applications, run 3-way checks, inspect discrepancy highlights, and record legal regulatory orders.
+              </p>
+            </div>
+            <div style="background: var(--bg); padding: 16px; border-radius: var(--radius-md);">
+              <h3 style="color: var(--saffron); font-size: 15px;">🎓 College (applicant)</h3>
+              <p style="font-size: 13px; color: var(--text-secondary); margin-top: 6px;">
+                College staff check submitted papers before final submission and upload replacement documents to remediate deficiencies.
+              </p>
+            </div>
+            <div style="background: var(--bg); padding: 16px; border-radius: var(--radius-md);">
+              <h3 style="color: var(--green); font-size: 15px;">🛡️ Auditor</h3>
+              <p style="font-size: 13px; color: var(--text-secondary); margin-top: 6px;">
+                Independent oversight auditors mathematically verify the SHA-256 hash chain and confirm regulatory compliance integrity.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================================================================
+           VIEW 9: College Self-Check & Document Replacement
+           =================================================================== -->
+      <section id="viewPreflight" class="view-panel" aria-labelledby="preflightTitle">
+        <div class="view-header">
+          <div class="view-title-group">
+            <h1 id="preflightTitle">Self-check before submitting</h1>
+            <p>This is a quick check of your papers before you submit. The issuer and tamper checks are done by AICTE.</p>
+          </div>
+          <button id="runPreflightCheckBtn" class="btn-primary">📋 Run Pre-submission Document Check</button>
+        </div>
+
+        <div id="preflightStatusNotice" style="margin-bottom: 20px;"></div>
+
+        <!-- Document Replacement Form -->
+        <div class="dashboard-card" style="margin-bottom: 20px;">
+          <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 8px;">Upload Corrected Replacement Document</h3>
+          <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 14px;">
+            Fix an identified issue by uploading an updated document. The prior copy is preserved for the official audit trail.
+          </p>
+          <form id="replaceDocForm" style="display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap;">
+            <div style="display: flex; flex-direction: column; gap: 4px; min-width: 220px;">
+              <label for="replaceAppSelect" style="font-size: 13px; font-weight: 600;">Application:</label>
+              <select id="replaceAppSelect" class="search-input" style="padding: 8px;">
+                <option value="APP-2026-003" selected>APP-2026-003 (C.V. Raman - Expired Certificate)</option>
+                <option value="APP-2026-004">APP-2026-004 (Srinivasa Engg - Contradictions)</option>
+                <option value="APP-2026-001">APP-2026-001 (Aryabhata Institute - Verified)</option>
+                <option value="APP-2026-002">APP-2026-002 (Bhabha Poly - Forged Seal)</option>
+                <option value="APP-2026-005">APP-2026-005 (Visvesvaraya Inst - Reused Lease)</option>
+              </select>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 4px; min-width: 180px;">
+              <label for="replaceDocTypeSelect" style="font-size: 13px; font-weight: 600;">Document Type:</label>
+              <select id="replaceDocTypeSelect" class="search-input" style="padding: 8px;">
+                <option value="accreditation_certificate" selected>Accreditation Certificate</option>
+                <option value="lease_deed">Lease Deed</option>
+                <option value="affidavit">Omnibus Affidavit</option>
+                <option value="state_noc">State Government NOC</option>
+                <option value="ter_receipt">TER Payment Receipt</option>
+              </select>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 220px;">
+              <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                <label for="replaceFileInput" style="font-size: 13px; font-weight: 600;">Select Corrected File (PDF):</label>
+                <a id="demoSamplesLinkCollege" href="#" style="font-size: 11px; color: var(--navy-accent); text-decoration: underline;">Download sample files</a>
+              </div>
+              <input type="file" id="replaceFileInput" class="search-input" accept=".pdf,.png,.jpg" style="padding: 6px;">
+            </div>
+            <button type="submit" id="submitReplaceBtn" class="btn-primary">Upload & Version</button>
+          </form>
+        </div>
+
+        <!-- Friendly Result Panel for College (Shown after document replacement) -->
+        <div id="collegeReplacementResultPanel" class="college-result-panel" style="display:none; margin-bottom: 20px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary);" id="collegeResultHeading">What changed with this upload</h3>
+            <span id="collegeResultCheckPill" class="status-chip chip-green" style="font-size: 11px;">Check #2</span>
+          </div>
+          <div id="collegeResultExplanation" style="font-size: 14px; font-weight: 600; color: var(--text-secondary); margin-bottom: 14px;"></div>
+          
+          <div id="collegeFixedList" style="margin-bottom: 12px; display: flex; flex-direction: column; gap: 8px;"></div>
+          <div id="collegeRemainingList" style="display: flex; flex-direction: column; gap: 8px;"></div>
+        </div>
+
+        <!-- Identified Deficiencies Table -->
+        <div class="dashboard-card">
+          <h3 style="font-size: 15px; font-weight: 700; margin-bottom: 12px;">Identified Document Issues & How to Fix</h3>
+          <table class="cross-checks-table">
+            <thead>
+              <tr>
+                <th>Document</th>
+                <th>Identified Discrepancy</th>
+                <th>How to Fix</th>
+              </tr>
+            </thead>
+            <tbody id="preflightTableBody">
+              <tr>
+                <td colspan="3" style="text-align: center; color: var(--text-muted);">Click 'Run Pre-submission Document Check' to scan submitted papers.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Footer on Every Page -->
+  <footer class="app-footer">
+    Prototype built for the AICTE problem statement. Not an official AICTE system. Uses synthetic data only.
+  </footer>
+
+  <!-- ===================================================================
+       MODAL 1: First-Load Welcome Role Picker Modal
+       =================================================================== -->
+  <div id="welcomeModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="welcomeTitle">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="welcomeTitle">Welcome to TruthTrace</h3>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 14px; color: var(--text-secondary);">
+          Choose your role to explore the tailored workflow. You can switch roles anytime from the top bar.
+        </p>
+
+        <div class="welcome-roles-grid">
+          <div class="role-choice-card" data-role="Officer" role="button" tabindex="0">
+            <div class="role-choice-icon">🏛️</div>
+            <div class="role-choice-text">
+              <h4>AICTE Scrutiny Officer</h4>
+              <p>Review college applications, run 3-way checks, and record regulatory decisions.</p>
+            </div>
+          </div>
+
+          <div class="role-choice-card" data-role="Institution" role="button" tabindex="0">
+            <div class="role-choice-icon">🎓</div>
+            <div class="role-choice-text">
+              <h4>College (applicant)</h4>
+              <p>Check your documents before submission and fix any flagged issues.</p>
+            </div>
+          </div>
+
+          <div class="role-choice-card" data-role="Auditor" role="button" tabindex="0">
+            <div class="role-choice-icon">🛡️</div>
+            <div class="role-choice-text">
+              <h4>Auditor</h4>
+              <p>Verify cryptographic tamper-proof hash chains and system activity logs.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================
+       MODAL 2: Record Regulatory Decision Modal (Stage 6)
+       =================================================================== -->
+  <div id="decisionModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="decisionModalTitle">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="decisionModalTitle">Record My Regulatory Decision</h3>
+        <button id="closeDecisionModalBtn" class="btn-micro-action" aria-label="Close modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div style="background-color: var(--amber-light); padding: 10px 14px; border-radius: var(--radius-sm); font-size: 13px; color: var(--amber); font-weight: 600;">
+          ⚖️ Automated checks only advise. The decision is yours.
+        </div>
+
+        <div id="decisionFindingsSummary" style="font-size: 13px; color: var(--text-secondary); background: var(--bg); padding: 10px 14px; border-radius: var(--radius-sm);">
+          <b>Application findings:</b> <span id="decisionFindingsText">Loading findings...</span>
+        </div>
+
+        <div>
+          <label style="font-size: 13px; font-weight: 700; margin-bottom: 8px; display: block;">Select Regulatory Action:</label>
+          <div class="decision-options-group">
+            <label class="decision-radio-card selected">
+              <input type="radio" name="decisionAction" value="approve" checked>
+              <div>
+                <b style="font-size: 14px; color: var(--text-primary);">Proceed to next stage</b>
+                <p style="font-size: 12px; color: var(--text-secondary);">Clear application for AICTE Approval renewal (EoA) issuance.</p>
+              </div>
+            </label>
+
+            <label class="decision-radio-card">
+              <input type="radio" name="decisionAction" value="request_clarification">
+              <div>
+                <b style="font-size: 14px; color: var(--text-primary);">Ask college for clarification</b>
+                <p style="font-size: 12px; color: var(--text-secondary);">Request institution to rectify flagged discrepancy or submit addendum.</p>
+              </div>
+            </label>
+
+            <label class="decision-radio-card">
+              <input type="radio" name="decisionAction" value="refer_for_inspection">
+              <div>
+                <b style="font-size: 14px; color: var(--text-primary);">Refer for physical inspection</b>
+                <p style="font-size: 12px; color: var(--text-secondary);">Dispatch Expert Visiting Committee (EVC) for physical on-site audit.</p>
+              </div>
+            </label>
+
+            <!-- Reject under More Options -->
+            <details style="margin-top: 6px;">
+              <summary style="font-size: 13px; color: var(--red); font-weight: 700; cursor: pointer;">More options (Adverse Rejection)</summary>
+              <label class="decision-radio-card" style="margin-top: 8px; border-color: rgba(198, 40, 40, 0.4);">
+                <input type="radio" name="decisionAction" value="reject">
+                <div>
+                  <b style="font-size: 14px; color: var(--red);">Reject application</b>
+                  <p style="font-size: 12px; color: var(--text-secondary);">Issue statutory rejection order. Requires detailed factual reasoning.</p>
+                </div>
+              </label>
+            </details>
+          </div>
+        </div>
+
+        <div>
+          <label for="officerWrittenReason" style="font-size: 13px; font-weight: 700; margin-bottom: 4px; display: block;">
+            Written Reason (Mandatory):
+          </label>
+          <textarea id="officerWrittenReason" class="reason-textarea" rows="4" placeholder="Detail the legal and factual basis for your decision (min 10 characters)..."></textarea>
+          <div class="char-counter"><span id="reasonCharCount">0</span> characters entered (min 10 required)</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="cancelDecisionBtn" class="btn-secondary">Cancel</button>
+        <button id="confirmDecisionBtn" class="btn-danger">Confirm & Sign Order</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================
+       MODAL 3: Scrutiny Step-by-Step Runner Modal
+       =================================================================== -->
+  <div id="scrutinyRunnerModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="runnerTitle">
+    <div class="modal-card" style="max-width: 480px;">
+      <div class="modal-header">
+        <h3 id="runnerTitle">Running Automated Scrutiny</h3>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 13px; color: var(--text-secondary);">
+          Evaluating submitted documents against AICTE regulatory norms and cryptographic registries...
+        </p>
+
+        <div class="scrutiny-steps-container">
+          <div class="scrutiny-step-row" id="step1Reading">
+            <span class="step-spinner" id="step1Spinner"></span>
+            <div>
+              <b style="font-size: 14px;">1. Reading documents</b>
+              <p style="font-size: 12px; color: var(--text-secondary);">Extracting normalized fields and text layer</p>
+            </div>
+          </div>
+
+          <div class="scrutiny-step-row" id="step2DocCheck">
+            <span class="step-spinner" id="step2Spinner" style="display:none;"></span>
+            <div>
+              <b style="font-size: 14px;">2. Document check</b>
+              <p style="font-size: 12px; color: var(--text-secondary);">Validating mandatory papers against AICTE master record</p>
+            </div>
+          </div>
+
+          <div class="scrutiny-step-row" id="step3TamperCheck">
+            <span class="step-spinner" id="step3Spinner" style="display:none;"></span>
+            <div>
+              <b style="font-size: 14px;">3. Tamper check</b>
+              <p style="font-size: 12px; color: var(--text-secondary);">Scanning pixel noise, copy-move clusters & metadata</p>
+            </div>
+          </div>
+
+          <div class="scrutiny-step-row" id="step4IssuerCheck">
+            <span class="step-spinner" id="step4Spinner" style="display:none;"></span>
+            <div>
+              <b style="font-size: 14px;">4. Issuer check</b>
+              <p style="font-size: 12px; color: var(--text-secondary);">Verifying Ed25519 digital seal with issuing authority</p>
+            </div>
+          </div>
+
+          <div class="scrutiny-step-row" id="step5Result">
+            <span class="step-spinner" id="step5Spinner" style="display:none;"></span>
+            <div>
+              <b style="font-size: 14px;">5. Result compilation</b>
+              <p style="font-size: 12px; color: var(--text-secondary);">Determining confidence score and plain language next steps</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================
+       DRAWER: Demo Controls (Presentations Only)
+       =================================================================== -->
+  <aside id="demoDrawer" class="demo-drawer" aria-label="Demo controls drawer">
+    <div class="drawer-header">
+      <h3 style="font-size: 16px; font-weight: 700;">Demo Controls</h3>
+      <button id="closeDemoDrawerBtn" class="btn-micro-action" aria-label="Close drawer">&times;</button>
+    </div>
+    <div class="drawer-body">
+      <div class="toggle-switch-wrap">
+        <div>
+          <b style="font-size: 14px;">Pretend the issuer server is down</b>
+          <p style="font-size: 12px; color: var(--text-secondary);">Simulates an outage of Sub-Registrar and State NOC portals to demonstrate graceful fallback.</p>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="issuerOutageToggle">
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <hr style="border: none; border-top: 1px solid var(--border);">
+
+      <div>
+        <b style="font-size: 14px;">Reset Seed Data</b>
+        <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 10px;">
+          Resets all 5 canonical test applications and clears demo test records.
+        </p>
+        <button id="resetSeedBtn" class="btn-secondary" style="width: 100%;">⚡ Reset to 5 Clean Applications</button>
+      </div>
+
+      <hr style="border: none; border-top: 1px solid var(--border);">
+
+      <div>
+        <b style="font-size: 14px;">5 Canonical Archetypes Quick Links</b>
+        <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 8px;">
+          <button class="btn-micro-action quick-app-link" data-app-id="APP-2026-001">1. Clean application (Verified)</button>
+          <button class="btn-micro-action quick-app-link" data-app-id="APP-2026-002">2. Forged signature (Mismatch found)</button>
+          <button class="btn-micro-action quick-app-link" data-app-id="APP-2026-003">3. Expired certificate (Expired)</button>
+          <button class="btn-micro-action quick-app-link" data-app-id="APP-2026-004">4. Contradictions (Needs review)</button>
+          <button class="btn-micro-action quick-app-link" data-app-id="APP-2026-005">5. Reused deed number (Needs review)</button>
+        </div>
+      </div>
+
+      <hr style="border: none; border-top: 1px solid var(--border);">
+
+      <div>
+        <b style="font-size: 14px;">Demo Test Assets</b>
+        <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">
+          Download sample corrected documents to test live replacement flow.
+        </p>
+        <a id="demoSamplesLinkDrawer" href="#" class="btn-micro-action" style="display: block; text-align: center; text-decoration: none; padding: 6px 10px;">
+          📥 Download sample files
+        </a>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ===================================================================
+       MODAL: Adversarial Guided Attack Wizard
+       =================================================================== -->
+  <div id="advWizardModal" class="adv-modal-backdrop" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="advWizardTitle">
+    <div class="adv-modal-dialog">
+      <div class="adv-modal-header">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 24px;">🧙</span>
+          <div>
+            <h3 id="advWizardTitle" style="font-size: 17px; font-weight: 700; color: var(--navy);">Adversarial Guided Attack Wizard</h3>
+            <div style="font-size: 12px; color: var(--text-secondary);">Select a simulated real-world attack scenario to test multi-probe detection defenses</div>
+          </div>
+        </div>
+        <button id="advCloseWizardBtn" class="btn-top-icon" title="Close Wizard" aria-label="Close dialog">✕</button>
+      </div>
+
+      <div class="adv-modal-body">
+        <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 16px;">
+          Choose an adversarial vector from our curated regulatory audit catalog. The wizard will automatically configure the base document, inject the specific tampering vector, and prepare the verification pipeline.
+        </div>
+        
+        <div class="adv-wizard-cards-grid" id="advWizardCardsContainer">
+          <!-- Populated dynamically via app.js -->
+        </div>
+      </div>
+
+      <div class="adv-modal-footer">
+        <button id="advCloseWizardFooterBtn" class="btn-secondary">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================
+       MODAL: Anomaly Detector In-Depth Explanation
+       =================================================================== -->
+  <div id="advDetectorInfoModal" class="adv-modal-backdrop" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="advInfoDetectorName">
+    <div class="adv-modal-dialog" style="max-width: 580px;">
+      <div class="adv-modal-header">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span id="advInfoDetectorIcon" style="font-size: 24px;">🔬</span>
+          <div>
+            <h3 id="advInfoDetectorName" style="font-size: 17px; font-weight: 700; color: var(--navy);">Detector Methodology</h3>
+            <div id="advInfoDetectorCategory" style="font-size: 12px; color: var(--text-secondary);">Verification Pipeline Probe</div>
+          </div>
+        </div>
+        <button id="advCloseInfoModalBtn" class="btn-top-icon" title="Close" aria-label="Close dialog">✕</button>
+      </div>
+
+      <div class="adv-modal-body">
+        <div class="adv-info-block">
+          <div class="adv-info-heading">Mathematical & Scientific Foundation</div>
+          <p id="advInfoTheoryText" style="font-size: 13px; color: var(--text-secondary); line-height: 1.5;">
+            Theoretical explanation of how the detector isolates adversarial anomalies.
+          </p>
+        </div>
+
+        <div class="adv-info-block" style="margin-top: 14px;">
+          <div class="adv-info-heading">Why Single-Lane Checks Miss This Vector (Honest Blind Spot)</div>
+          <p id="advInfoBlindSpotText" style="font-size: 13px; color: var(--text-secondary); line-height: 1.5;">
+            Explanation of why pixel forensics or text checks alone can be bypassed and why multi-lane triangulation is necessary.
+          </p>
+        </div>
+
+        <div class="adv-info-block" style="margin-top: 14px;">
+          <div class="adv-info-heading">Statutory Counterfactual Advice</div>
+          <div id="advInfoMitigationBox" class="adv-info-mitigation">
+            Recommended institutional policy or digital seal required to prevent this attack in future submissions.
+          </div>
+        </div>
+      </div>
+
+      <div class="adv-modal-footer">
+        <button id="advCloseInfoModalFooterBtn" class="btn-primary" style="padding: 6px 18px;">Understood</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Coach-Mark Tour Box Overlay -->
+  <div id="tourOverlayBox" style="display:none; position: fixed; z-index: 10000; background: var(--navy-dark); color: #ffffff; padding: 18px 22px; border-radius: var(--radius-md); box-shadow: var(--shadow-lg); max-width: 340px;">
+    <h4 id="tourStepTitle" style="font-size: 15px; font-weight: 700; color: var(--saffron);">Tour Step</h4>
+    <p id="tourStepContent" style="font-size: 13px; margin: 8px 0 14px 0; line-height: 1.4;">Tour content text</p>
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <span id="tourStepIndicator" style="font-size: 12px; color: #94a3b8;">Step 1 of 5</span>
+      <div style="display: flex; gap: 8px;">
+        <button id="tourSkipBtn" class="btn-micro-action" style="color: #cbd5e1; border-color: #475569;">Skip</button>
+        <button id="tourNextBtn" class="btn-primary" style="padding: 4px 12px; font-size: 12px;">Next →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Startup Splash Overlay -->
+  <div id="startupSplash" class="splash-overlay" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="splashTitle">
+    <div class="splash-card">
+      <div class="splash-spinner" id="splashSpinner"></div>
+      <div class="splash-icon" id="splashIcon" style="display:none; font-size: 38px; margin-bottom: 12px;">⚠️</div>
+      <h3 id="splashTitle" style="font-size: 18px; font-weight: 700; margin-bottom: 8px; color: var(--text-primary);">Waking up the demo server</h3>
+      <p id="splashMessage" style="font-size: 14px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 16px;">
+        Waking up the demo server. The first visit can take up to a minute.
+      </p>
+      <div id="splashActionBox" style="display:none;">
+        <button id="splashRetryBtn" class="btn-primary" style="padding: 8px 22px;">Retry Connection</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer" aria-live="polite"></div>
+
+  <!-- Configuration and Controller Scripts -->
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
