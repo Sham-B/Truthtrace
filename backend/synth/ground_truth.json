@@ -1,0 +1,72 @@
+[
+  {
+    "attack_id": "ATK-01",
+    "attack_type": "wrong_signature",
+    "expected_lane": "provenance",
+    "expected_reason_code": "SEAL_SIGNATURE_MISMATCH",
+    "description": "Ed25519 signature corrupted in QR seal"
+  },
+  {
+    "attack_id": "ATK-02",
+    "attack_type": "mismatched_address",
+    "expected_lane": "content",
+    "expected_reason_code": "ADDRESS_MISMATCH",
+    "description": "Campus address in lease deed diverges from AICTE master"
+  },
+  {
+    "attack_id": "ATK-03",
+    "attack_type": "amount_edit",
+    "expected_lane": "content",
+    "expected_reason_code": "TER_AMOUNT_INSUFFICIENT",
+    "description": "Regulatory fee paid (INR 25,000) below mandatory tier"
+  },
+  {
+    "attack_id": "ATK-04",
+    "attack_type": "expired_doc",
+    "expected_lane": "content",
+    "expected_reason_code": "EXPIRED_DOCUMENT",
+    "description": "Lease tenancy expired prior to approval window"
+  },
+  {
+    "attack_id": "ATK-05",
+    "attack_type": "metadata_spoof",
+    "expected_lane": "forensic",
+    "expected_reason_code": "SUSPICIOUS_PDF_PRODUCER",
+    "description": "PDF producer metadata references Adobe Photoshop"
+  },
+  {
+    "attack_id": "ATK-06",
+    "attack_type": "text_pasteover",
+    "expected_lane": "forensic",
+    "expected_reason_code": "MIXED_FONT_TYPOGRAPHY",
+    "description": "White-out box with Courier typography spliced over text"
+  },
+  {
+    "attack_id": "ATK-07",
+    "attack_type": "copy_move",
+    "expected_lane": "forensic",
+    "expected_reason_code": "COPY_MOVE_CLONE_DETECTED",
+    "description": "Duplicated workstation row cloned inside lab photo"
+  },
+  {
+    "attack_id": "ATK-08",
+    "attack_type": "jpeg_recompress",
+    "expected_lane": "forensic",
+    "expected_reason_code": "ELA_ANOMALY_DETECTED",
+    "description": "Dual-pass JPEG recompression introducing ELA residual disparity"
+  },
+  {
+    "attack_id": "ATK-09",
+    "attack_type": "date_edit",
+    "expected_lane": "temporal",
+    "expected_reason_code": "TR_LEASE_BEFORE_AFFIDAVIT",
+    "description": "Lease commencement date post-dates affidavit declaration"
+  },
+  {
+    "attack_id": "ATK-10",
+    "attack_type": "reuse_duplicate",
+    "expected_lane": "reuse_ring",
+    "expected_reason_code": "REUSE_RING_DOCUMENT_COLLISION",
+    "description": "Identical lease document and registration number reused across colleges"
+  }
+]

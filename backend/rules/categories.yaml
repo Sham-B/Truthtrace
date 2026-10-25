@@ -1,0 +1,81 @@
+categories:
+  EOA_RENEWAL:
+    name: "Extension of Approval (EoA) Renewal"
+    description: "Annual continuation of existing AICTE approved technical programs."
+    handbook_ref: "APH §2.1.4 (Renewal of Approval for Existing Institutions)"
+    required_documents:
+      - doc_type: "affidavit"
+        name: "Omnibus Affidavit in AICTE Prescribed Format"
+        min_pages: 1
+      - doc_type: "lease_deed"
+        name: "Registered Land Lease / Title Ownership Deed"
+        min_pages: 1
+      - doc_type: "state_noc"
+        name: "State Government Technical Education NOC"
+        min_pages: 1
+      - doc_type: "ter_receipt"
+        name: "Technical Education Regulatory (TER) Payment Receipt"
+        min_pages: 1
+    optional_documents:
+      - doc_type: "nba_certificate"
+        name: "National Board of Accreditation (NBA) Certificate"
+      - doc_type: "lab_photo"
+        name: "Computer Center / Core Laboratory Geo-tagged Photo"
+    validity_rules:
+      min_lease_remaining_months: 12
+      max_affidavit_age_days: 90
+      ter_fee_standard: 100000.0
+
+  INTAKE_INCREASE:
+    name: "Increase in Approved Intake / Additional Division"
+    description: "Application for expansion of seat capacity in existing approved courses."
+    handbook_ref: "APH §3.2.1 (Enhancement of Sanctioned Intake)"
+    required_documents:
+      - doc_type: "affidavit"
+        name: "Affidavit Declaring Enhanced Infrastructure & Faculty"
+        min_pages: 1
+      - doc_type: "lease_deed"
+        name: "Registered Land Lease Deed Confirming Acreage Norms"
+        min_pages: 1
+      - doc_type: "state_noc"
+        name: "State NOC explicitly endorsing Intake Increase"
+        min_pages: 1
+      - doc_type: "nba_certificate"
+        name: "Valid NBA Accreditation Certificate (Mandatory for Intake Expansion)"
+        min_pages: 1
+      - doc_type: "ter_receipt"
+        name: "TER Payment Receipt (Augmented Fee Tier)"
+        min_pages: 1
+      - doc_type: "lab_photo"
+        name: "Photographic Evidence of Additional Labs / Equipment"
+        min_pages: 1
+    validity_rules:
+      min_lease_remaining_months: 24
+      max_affidavit_age_days: 60
+      ter_fee_standard: 150000.0
+      min_accreditation_score: 650
+
+  NEW_COURSE:
+    name: "Introduction of New Technical Course / Integrated Program"
+    description: "Addition of brand new degree, diploma, or emerging tech curriculum."
+    handbook_ref: "APH §4.1.2 (Introduction of New Programs / Emerging Technologies)"
+    required_documents:
+      - doc_type: "affidavit"
+        name: "Trust/Society Affidavit on Preparedness & Funds"
+        min_pages: 1
+      - doc_type: "lease_deed"
+        name: "Land Title Ownership / Lease Registration"
+        min_pages: 1
+      - doc_type: "state_noc"
+        name: "State Government Technical Board Clearance"
+        min_pages: 1
+      - doc_type: "ter_receipt"
+        name: "TER Fee Receipt for New Curriculum Processing"
+        min_pages: 1
+      - doc_type: "lab_photo"
+        name: "Specialized Laboratory Setup Photos"
+        min_pages: 1
+    validity_rules:
+      min_lease_remaining_months: 36
+      max_affidavit_age_days: 60
+      ter_fee_standard: 200000.0

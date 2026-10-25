@@ -1,0 +1,55 @@
+category: "INTAKE_INCREASE"
+handbook_section: "APH §3.2.1"
+fields:
+  - name: "institution_name"
+    required: true
+    data_type: "string"
+    rule_id: "REQ_INST_NAME"
+    handbook_ref: "APH §1.3.1"
+    description: "Official registered name of the technical institution."
+
+  - name: "pid"
+    required: true
+    data_type: "pid"
+    regex: "^1-[0-9]{10}$"
+    rule_id: "REQ_PID_FORMAT"
+    handbook_ref: "APH §1.2.2"
+    description: "Permanent Institute ID assigned by AICTE."
+
+  - name: "lease_expiry_date"
+    required: true
+    data_type: "date"
+    rule_id: "REQ_LEASE_EXPIRY"
+    handbook_ref: "APH §Appendix-4.2"
+    description: "Expiration date of land lease deed."
+
+  - name: "nba_accreditation_number"
+    required: true
+    data_type: "string"
+    rule_id: "REQ_NBA_ACC_NO"
+    handbook_ref: "APH §3.2.4"
+    description: "NBA Accreditation certificate reference."
+
+  - name: "nba_valid_upto"
+    required: true
+    data_type: "date"
+    rule_id: "REQ_NBA_VALIDITY"
+    handbook_ref: "APH §3.2.5"
+    description: "NBA accreditation expiry date."
+
+  - name: "proposed_intake"
+    required: true
+    data_type: "int"
+    min_value: 60
+    max_value: 1200
+    rule_id: "REQ_INTAKE_CAP"
+    handbook_ref: "APH §3.1.2"
+    description: "Total proposed sanctioned student intake."
+
+  - name: "ter_amount"
+    required: true
+    data_type: "float"
+    min_value: 150000.0
+    rule_id: "REQ_TER_AMT"
+    handbook_ref: "APH §Payment-Schedule"
+    description: "Processing fee paid for intake increase."

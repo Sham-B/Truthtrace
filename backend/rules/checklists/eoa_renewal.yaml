@@ -1,0 +1,61 @@
+category: "EOA_RENEWAL"
+handbook_section: "APH §2.1.4"
+fields:
+  - name: "institution_name"
+    required: true
+    data_type: "string"
+    rule_id: "REQ_INST_NAME"
+    handbook_ref: "APH §1.3.1"
+    description: "Official registered name of the technical institution."
+
+  - name: "pid"
+    required: true
+    data_type: "pid"
+    regex: "^1-[0-9]{10}$"
+    rule_id: "REQ_PID_FORMAT"
+    handbook_ref: "APH §1.2.2"
+    description: "Permanent Institute ID assigned by AICTE."
+
+  - name: "lease_start_date"
+    required: true
+    data_type: "date"
+    rule_id: "REQ_LEASE_START"
+    handbook_ref: "APH §Appendix-4.1"
+    description: "Commencement date of land lease deed."
+
+  - name: "lease_expiry_date"
+    required: true
+    data_type: "date"
+    rule_id: "REQ_LEASE_EXPIRY"
+    handbook_ref: "APH §Appendix-4.2"
+    description: "Expiration date of land lease deed."
+
+  - name: "land_area_acres"
+    required: true
+    data_type: "float"
+    min_value: 2.5
+    rule_id: "REQ_LAND_AREA"
+    handbook_ref: "APH §Appendix-4.3"
+    description: "Contiguous land area in acres conforming to urban/rural norms."
+
+  - name: "state_noc_number"
+    required: true
+    data_type: "string"
+    rule_id: "REQ_NOC_NUM"
+    handbook_ref: "APH §2.3.1"
+    description: "Official endorsement reference from state technical directorate."
+
+  - name: "ter_transaction_id"
+    required: true
+    data_type: "string"
+    rule_id: "REQ_TER_TXN"
+    handbook_ref: "APH §Payment-Schedule"
+    description: "Unique reference ID for TER fee payment transaction."
+
+  - name: "ter_amount"
+    required: true
+    data_type: "float"
+    min_value: 100000.0
+    rule_id: "REQ_TER_AMT"
+    handbook_ref: "APH §Payment-Schedule"
+    description: "Amount paid towards regulatory processing fee."

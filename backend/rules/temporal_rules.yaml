@@ -1,0 +1,62 @@
+temporal_rules:
+  - id: "TR_LEASE_BEFORE_AFFIDAVIT"
+    name: "Lease Execution Before Affidavit"
+    description: "Land lease deed execution date must precede or coincide with the affidavit declaration date."
+    condition: "lease_start_date <= affidavit_date"
+    claims: ["lease_start_date", "affidavit_date"]
+    handbook_ref: "APH §Appendix-4.1"
+    severity: "critical"
+
+  - id: "TR_AFFIDAVIT_BEFORE_APP"
+    name: "Affidavit Precedes Application Submission"
+    description: "Notarized affidavit must be executed prior to or on the date of online application submission."
+    condition: "affidavit_date <= application_date"
+    claims: ["affidavit_date", "application_date"]
+    handbook_ref: "APH §1.4.2"
+    severity: "warning"
+
+  - id: "TR_LEASE_MIN_VALIDITY"
+    name: "Sufficient Remaining Lease Tenancy"
+    description: "Land lease must remain valid for at least 12 months (or category configured months) beyond application date."
+    condition: "lease_expiry_date >= application_date + 365_days"
+    claims: ["lease_expiry_date", "application_date"]
+    handbook_ref: "APH §Appendix-4.2"
+    severity: "critical"
+
+  - id: "TR_NOC_BEFORE_APPROVAL"
+    name: "State NOC Prior to Approval Window"
+    description: "State Government Technical Education clearance must be issued prior to AICTE approval cutoff date."
+    condition: "state_noc_date <= application_date"
+    claims: ["state_noc_date", "application_date"]
+    handbook_ref: "APH §2.3.2"
+    severity: "warning"
+
+  - id: "TR_TER_PAYMENT_TIMELINESS"
+    name: "TER Payment Prior to Submission"
+    description: "Regulatory fee transaction must be completed and confirmed before application submission."
+    condition: "ter_payment_date <= application_date"
+    claims: ["ter_payment_date", "application_date"]
+    handbook_ref: "APH §Payment-Schedule"
+    severity: "critical"
+
+identity_consistency_rules:
+  - id: "IR_PID_CROSS_DOC"
+    name: "PID Uniformity Across Submissions"
+    description: "Permanent Institute ID must be identical across Affidavit, Lease, NOC, and TER receipts."
+    fields: ["pid"]
+    threshold: 1.0
+    handbook_ref: "APH §1.2.2"
+
+  - id: "IR_INST_NAME_MATCH"
+    name: "Institution Name Concordance"
+    description: "Institutional name across all documents and master record must match with high fuzzy token similarity (>= 85%)."
+    fields: ["institution_name"]
+    threshold: 0.85
+    handbook_ref: "APH §1.3.1"
+
+  - id: "IR_ADDRESS_MATCH"
+    name: "Campus Physical Address Concordance"
+    description: "Campus location address on Lease Deed must match master AICTE institutional address (>= 80%)."
+    fields: ["address"]
+    threshold: 0.80
+    handbook_ref: "APH §Appendix-4.3"

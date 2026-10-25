@@ -1,0 +1,66 @@
+hypotheses:
+  DATE_ORDER_VIOLATION:
+    benign_explanations:
+      - title: "Notary Delay or Date Format Ambiguity"
+        description: "Document was drafted earlier in the month, but physical notary stamp was executed later, or date notation used DD/MM vs MM/DD format."
+        settling_evidence: "Physical Notary Register serial entry extract or original e-stamp registration stamp slip."
+      - title: "Retrospective Lease Renewal Clause"
+        description: "The institution lease agreement contains a retroactive commencement clause agreed upon between lessor and lessee prior to signing."
+        settling_evidence: "Original registered deed addendum or lessor bank statement showing rental commencement."
+
+  SEAL_SIGNATURE_MISMATCH:
+    benign_explanations:
+      - title: "Official Signatory Transition"
+        description: "The issuing authority recently updated its designated executive or signing officer, and the new digital key has not propagated to legacy public mirrors."
+        settling_evidence: "Government gazette notification or authority order establishing new signing official appointment."
+      - title: "Multi-jurisdiction Sub-Registrar Seal"
+        description: "Document was registered at an adjoining taluk/district sub-registrar office due to administrative jurisdiction realignment."
+        settling_evidence: "Sub-registrar office certified true copy or state land portal online verification receipt."
+
+  FORENSIC_NOISE_ANOMALY:
+    benign_explanations:
+      - title: "Flatbed Scanner Multi-Pass Recompression"
+        description: "Institutional scanner software applied automatic sharpening, contrast enhancement, or dual-pass JPEG recompression to improve legibility."
+        settling_evidence: "Direct vector PDF generated from word processor or high-resolution uncompressed TIFF scan."
+      - title: "Pre-printed Government Stationery"
+        description: "Official government stamp paper uses pre-printed offset halftone security grids that exhibit different high-frequency noise than typed computer text."
+        settling_evidence: "Certified original physical inspection by regional scrutiny committee."
+
+  NAME_MISMATCH:
+    benign_explanations:
+      - title: "Official Minor Nomenclature or Trust Prefix Variation"
+        description: "Inclusion or omission of honorific prefixes such as 'Shri', 'Smt', 'Dr.', or society brand names between academic trust deed and AICTE portal."
+        settling_evidence: "Trust resolution approving the operating brand name of the college."
+      - title: "Bilingual Transliteration Discrepancy"
+        description: "Phonetic English transliteration differences from state language (Hindi / Tamil / Marathi) official revenue land records."
+        settling_evidence: "State Revenue Department bilingual survey settlement certificate."
+
+  TER_PAYMENT_PENDING:
+    benign_explanations:
+      - title: "Inter-bank Clearing or RTGS Reconciliation Lag"
+        description: "Payment was initiated through SBI/HDFC institutional gateway, but regulatory treasury settlement batch runs at midnight T+1."
+        settling_evidence: "Bank UTR number and stamped bank debit confirmation scroll."
+
+  LEASE_EXPIRY_CRITICAL:
+    benign_explanations:
+      - title: "Automatic Evergreen Extension Clause"
+        description: "The lease indenture contains a mutual 30-year evergreen renewal option clause active on expiry."
+        settling_evidence: "Clause 14/15 of the registered lease indenture or supplementary registered extension memorandum."
+
+  EXPIRED_DOCUMENT:
+    benign_explanations:
+      - title: "Renewal Application Already Lodged"
+        description: "Accreditation or NOC renewal application has already been filed and acknowledged by the statutory authority, pending committee visit."
+        settling_evidence: "Official stamped renewal acknowledgement receipt or provisional extension memorandum."
+
+  OCR_TEXT_LAYER_MISMATCH:
+    benign_explanations:
+      - title: "Custom Display Font / Kerning Artifact"
+        description: "The PDF generator used custom embedded TrueType fonts with non-standard ToUnicode mapping tables, causing optical OCR to read glyphs differently than digital text layer."
+        settling_evidence: "Digital PDF source export or unflattened original document."
+
+  DEFAULT:
+    benign_explanations:
+      - title: "Administrative or Scanning Inconsistency"
+        description: "Unintentional clerical entry deviation or scanning artifact during document upload."
+        settling_evidence: "Officer verification of original wet-ink signed documents during Scrutiny Committee hearing."

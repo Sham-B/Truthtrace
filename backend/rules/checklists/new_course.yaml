@@ -1,0 +1,39 @@
+category: "NEW_COURSE"
+handbook_section: "APH §4.1.2"
+fields:
+  - name: "institution_name"
+    required: true
+    data_type: "string"
+    rule_id: "REQ_INST_NAME"
+    handbook_ref: "APH §1.3.1"
+    description: "Official registered name of the technical institution."
+
+  - name: "pid"
+    required: true
+    data_type: "pid"
+    regex: "^1-[0-9]{10}$"
+    rule_id: "REQ_PID_FORMAT"
+    handbook_ref: "APH §1.2.2"
+    description: "Permanent Institute ID assigned by AICTE."
+
+  - name: "course_name"
+    required: true
+    data_type: "string"
+    rule_id: "REQ_COURSE_NAME"
+    handbook_ref: "APH §4.1.3"
+    description: "Name of the proposed new curriculum (e.g. Artificial Intelligence & Data Science)."
+
+  - name: "affiliating_university"
+    required: true
+    data_type: "string"
+    rule_id: "REQ_AFFIL_UNI"
+    handbook_ref: "APH §4.1.4"
+    description: "University granting technical affiliation."
+
+  - name: "ter_amount"
+    required: true
+    data_type: "float"
+    min_value: 200000.0
+    rule_id: "REQ_TER_AMT"
+    handbook_ref: "APH §Payment-Schedule"
+    description: "New program evaluation fee."
