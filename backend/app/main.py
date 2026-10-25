@@ -99,8 +99,8 @@ class DemoSecurityMiddleware(BaseHTTPMiddleware):
                         )
                     _IP_UPLOADS[client_ip].append(now)
 
-                # 3. General requests limit: ~120 requests/min (exclude static assets and health)
-                if not path.startswith("/static") and path != "/health":
+                # 3. General requests limit: ~120 requests/min (exclude static assets and health/status/ping)
+                if not path.startswith("/static") and path not in ("/health", "/api/status", "/api/ping"):
                     _IP_REQUESTS[client_ip] = [t for t in _IP_REQUESTS[client_ip] if now - t < 60]
                     if len(_IP_REQUESTS[client_ip]) >= 120:
                         return JSONResponse(
@@ -218,6 +218,8 @@ def serve_index():
 
 
 @app.get("/health")
+@app.get("/api/status")
+@app.get("/api/ping")
 def health_check() -> Dict[str, Any]:
     return {
         "status": "ok",

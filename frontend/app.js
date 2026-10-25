@@ -13,11 +13,33 @@ if (typeof window.apiUrl !== "function") {
     return cleanBase ? cleanBase + cleanPath : cleanPath;
   };
 }
-if (typeof window.api !== "function") {
-  window.api = function(path, opts) {
-    return fetch(window.apiUrl(path), opts);
-  };
+
+let isBackendReady = false;
+let isHealthPollingActive = false;
+
+function markBackendReady(source) {
+  if (isBackendReady) return;
+  isBackendReady = true;
+  hideSplash();
+  showDemoBanner();
+  initDemoStatus();
+  loadDashboardData();
+  if (!localStorage.getItem("truthtrace-welcome-seen")) {
+    showWelcomeModal();
+  }
 }
+
+// Wrapper for api calls: treats ANY successful normal API call (e.g. applications list) as proof backend is up
+const originalApi = typeof window.api === "function" ? window.api : null;
+window.api = async function(path, opts) {
+  const targetUrl = window.apiUrl(path);
+  const res = await (originalApi ? originalApi(path, opts) : fetch(targetUrl, opts));
+  if (res && res.ok && !path.includes("/health") && !path.includes("/api/status") && !path.includes("/api/ping")) {
+    markBackendReady("api:" + path);
+  }
+  return res;
+};
+
 var apiUrl = window.apiUrl;
 var api = window.api;
 
@@ -94,34 +116,64 @@ const i18n = {
   }
 };
 
-// Initialize Application on DOM Ready
-
 // ============================================================================
 // STARTUP HEALTH SPLASH & PUBLIC DEMO BANNER
 // ============================================================================
 
-function showSplashLoading(title, message) {
+function showSplashLoading(title, message, url = null, lastError = null) {
   const splash = document.getElementById("startupSplash");
   const spinner = document.getElementById("splashSpinner");
   const icon = document.getElementById("splashIcon");
   const titleEl = document.getElementById("splashTitle");
   const msgEl = document.getElementById("splashMessage");
+  const urlBox = document.getElementById("splashUrlBox");
+  const errorBox = document.getElementById("splashErrorBox");
+  const hintBox = document.getElementById("splashHintBox");
+  const retryBtn = document.getElementById("splashRetryBtn");
   const actionBox = document.getElementById("splashActionBox");
 
   if (splash) splash.style.display = "flex";
   if (spinner) spinner.style.display = "block";
   if (icon) icon.style.display = "none";
-  if (actionBox) actionBox.style.display = "none";
   if (titleEl) titleEl.textContent = title;
   if (msgEl) msgEl.textContent = message;
+
+  if (url && urlBox) {
+    urlBox.textContent = "Checking: " + url;
+    urlBox.style.display = "block";
+  } else if (urlBox && !url) {
+    urlBox.style.display = "none";
+  }
+
+  if (lastError && errorBox) {
+    errorBox.textContent = "Last response: " + lastError;
+    errorBox.style.display = "block";
+  } else if (errorBox && !lastError) {
+    errorBox.style.display = "none";
+  }
+
+  const isBlocked = lastError && /blocked|fail|network|err_|refused/i.test(lastError);
+  if (isBlocked && hintBox) {
+    hintBox.textContent = "Your browser or an extension may be blocking this request. Try an Incognito window, or disable your ad blocker for this site.";
+    hintBox.style.display = "block";
+  } else if (hintBox && !isBlocked) {
+    hintBox.style.display = "none";
+  }
+
+  if (retryBtn) retryBtn.style.display = "none";
+  if (actionBox) actionBox.style.display = "flex";
 }
 
-function showSplashError(title, message, showRetry = true) {
+function showSplashError(title, message, url = null, lastError = null, showRetry = true) {
   const splash = document.getElementById("startupSplash");
   const spinner = document.getElementById("splashSpinner");
   const icon = document.getElementById("splashIcon");
   const titleEl = document.getElementById("splashTitle");
   const msgEl = document.getElementById("splashMessage");
+  const urlBox = document.getElementById("splashUrlBox");
+  const errorBox = document.getElementById("splashErrorBox");
+  const hintBox = document.getElementById("splashHintBox");
+  const retryBtn = document.getElementById("splashRetryBtn");
   const actionBox = document.getElementById("splashActionBox");
 
   if (splash) splash.style.display = "flex";
@@ -129,7 +181,23 @@ function showSplashError(title, message, showRetry = true) {
   if (icon) icon.style.display = "block";
   if (titleEl) titleEl.textContent = title;
   if (msgEl) msgEl.textContent = message;
-  if (actionBox) actionBox.style.display = showRetry ? "flex" : "none";
+
+  if (url && urlBox) {
+    urlBox.textContent = "Target endpoint: " + url;
+    urlBox.style.display = "block";
+  }
+  if (lastError && errorBox) {
+    errorBox.textContent = "Last error: " + lastError;
+    errorBox.style.display = "block";
+  }
+  const isBlocked = lastError && /blocked|fail|network|err_|refused/i.test(lastError);
+  if (isBlocked && hintBox) {
+    hintBox.textContent = "Your browser or an extension may be blocking this request. Try an Incognito window, or disable your ad blocker for this site.";
+    hintBox.style.display = "block";
+  }
+
+  if (retryBtn) retryBtn.style.display = showRetry ? "inline-block" : "none";
+  if (actionBox) actionBox.style.display = "flex";
 }
 
 function hideSplash() {
@@ -145,6 +213,10 @@ function showDemoBanner() {
 }
 
 async function checkBackendHealth() {
+  if (isBackendReady) return true;
+  if (isHealthPollingActive) return false;
+  isHealthPollingActive = true;
+
   const isLocalhost = window.location.hostname === "localhost" ||
                       window.location.hostname === "127.0.0.1" ||
                       window.location.hostname === "";
@@ -158,39 +230,110 @@ async function checkBackendHealth() {
     }
   }
 
+  const endpoints = ["/api/status", "/health"];
+  const backoffDelays = [2000, 4000, 8000]; // 2s, 4s, 8s, then 15s thereafter
+  const defaultDelay = 15000;
+  const timeoutMs = 180000; // 180 seconds total
+  const startTime = Date.now();
+  let attemptCount = 0;
+  let lastTriedUrl = "";
+  let lastErrorMsg = "";
+
   showSplashLoading("Connecting to TruthTrace...", "Waking up the demo server. The first visit can take up to a minute.");
 
-  let attempts = 0;
-  const maxAttempts = 60;
-  while (attempts < maxAttempts) {
-    attempts++;
-    try {
-      const res = await fetch(apiUrl("/health"), { cache: "no-store" });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.ready) {
-          hideSplash();
-          if (data.demo_mode) {
-            showDemoBanner();
-          }
-          return true;
-        } else {
-          showSplashLoading("Initializing database...", "Waking up the demo server. The first visit can take up to a minute.");
-        }
-      }
-    } catch (err) {
-      // Backend is asleep or booting
-      showSplashLoading("Connecting to demo server...", "Waking up the demo server. The first visit can take up to a minute.");
+  while (Date.now() - startTime < timeoutMs) {
+    if (isBackendReady) {
+      isHealthPollingActive = false;
+      return true;
     }
-    await new Promise(r => setTimeout(r, 1500));
+
+    // Try endpoints in order: /api/status first, then /health
+    for (let i = 0; i < endpoints.length; i++) {
+      if (isBackendReady) {
+        isHealthPollingActive = false;
+        return true;
+      }
+
+      const ep = endpoints[i];
+      const targetUrl = apiUrl(ep);
+      lastTriedUrl = targetUrl;
+      showSplashLoading(
+        "Connecting to TruthTrace...",
+        "Waking up the demo server. The first visit can take up to a minute.",
+        lastTriedUrl,
+        lastErrorMsg
+      );
+
+      try {
+        const res = await fetch(targetUrl, { cache: "no-store" });
+        if (res.ok) {
+          const data = await res.json().catch(() => ({ ready: true }));
+          if (data && (data.ready === undefined || data.ready === true || data.status === "ok")) {
+            markBackendReady(ep);
+            isHealthPollingActive = false;
+            return true;
+          } else {
+            lastErrorMsg = "Server booting (ready=false)";
+            showSplashLoading(
+              "Initializing database...",
+              "Waking up the demo server. The first visit can take up to a minute.",
+              targetUrl,
+              lastErrorMsg
+            );
+            // Server responded with 200, so backend is reached; proceed to sleep before re-checking
+            break;
+          }
+        } else {
+          lastErrorMsg = `HTTP ${res.status} ${res.statusText || ""}`.trim();
+          showSplashLoading(
+            "Connecting to demo server...",
+            "Waking up the demo server. The first visit can take up to a minute.",
+            targetUrl,
+            lastErrorMsg
+          );
+          // If network error, loop continues immediately to next endpoint
+        }
+      } catch (err) {
+        // Network error (e.g. net::ERR_BLOCKED_BY_CLIENT, Failed to fetch, CORS, connection refused)
+        lastErrorMsg = (err && err.message) ? err.message : "Network error (blocked or offline)";
+        showSplashLoading(
+          "Connecting to demo server...",
+          "Waking up the demo server. The first visit can take up to a minute.",
+          targetUrl,
+          lastErrorMsg
+        );
+        // Immediately try the other endpoint
+      }
+    }
+
+    if (isBackendReady) {
+      isHealthPollingActive = false;
+      return true;
+    }
+
+    // Exponential backoff: 2s, 4s, 8s, then every 15s
+    const delay = attemptCount < backoffDelays.length ? backoffDelays[attemptCount] : defaultDelay;
+    attemptCount++;
+
+    const remainingTime = timeoutMs - (Date.now() - startTime);
+    if (remainingTime <= 0) break;
+
+    const sleepDuration = Math.min(delay, remainingTime);
+    await new Promise(r => setTimeout(r, sleepDuration));
   }
 
-  showSplashError(
-    "Server Wake-up Timeout",
-    "The demo server took longer than expected to wake up. Click retry to connect again.",
-    true
-  );
-  return false;
+  isHealthPollingActive = false;
+  if (!isBackendReady) {
+    showSplashError(
+      "Server Wake-up Timeout",
+      "The demo server took longer than expected to wake up, or connection was blocked. Click retry to connect again.",
+      lastTriedUrl,
+      lastErrorMsg || "Timed out after 180s",
+      true
+    );
+    return false;
+  }
+  return true;
 }
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -205,17 +348,7 @@ document.addEventListener("DOMContentLoaded", () => {
   loadDashboardData();
 
   // Health check & startup splash polling in background
-  checkBackendHealth().then((isHealthy) => {
-    if (isHealthy) {
-      initDemoStatus();
-      loadDashboardData();
-
-      // Show Welcome Modal on first visit
-      if (!localStorage.getItem("truthtrace-welcome-seen")) {
-        showWelcomeModal();
-      }
-    }
-  });
+  checkBackendHealth();
 });
 
 // ============================================================================
@@ -498,6 +631,118 @@ function switchView(viewId) {
   }
 }
 
+function loadSampleDataOffline() {
+  if (state.applications && state.applications.length > 0) return;
+  state.applications = [
+    {
+      id: "APP-2026-001",
+      institution_id: "1-1029384751",
+      institution_name: "Aryabhata Institute of Engineering & Technology",
+      category: "EOA_RENEWAL",
+      academic_year: "2026-2027",
+      status: "verified",
+      plain_status: "Verified",
+      official_code: "STATUS_VERIFIED",
+      status_color: "green",
+      status_icon: "✓",
+      status_reason: "All automated document, tamper, and issuer checks passed successfully.",
+      what_to_do_next: "All checks are clear. Review the summary cards and proceed to record your approval order.",
+      deficiency_count: 0,
+      unique_issues_count: 0,
+      pid: "1-1029384751",
+      assurance_score: 0.98,
+      suspicion_score: 0.02,
+      sufficiency: 3
+    },
+    {
+      id: "APP-2026-002",
+      institution_id: "1-1029384752",
+      institution_name: "Ramanujan College of Advanced Computing",
+      category: "EOA_RENEWAL",
+      academic_year: "2026-2027",
+      status: "needs_review",
+      plain_status: "Needs review",
+      official_code: "STATUS_NEEDS_REVIEW",
+      status_color: "amber",
+      status_icon: "⚠️",
+      status_reason: "Minor discrepancies in faculty attendance register.",
+      what_to_do_next: "Inspect the faculty register cross-checks.",
+      deficiency_count: 1,
+      unique_issues_count: 1,
+      pid: "1-1029384752",
+      assurance_score: 0.75,
+      suspicion_score: 0.25,
+      sufficiency: 3
+    },
+    {
+      id: "APP-2026-003",
+      institution_id: "1-1029384753",
+      institution_name: "Dr. A.P.J. Abdul Kalam Technical University Campus",
+      category: "EOA_RENEWAL",
+      academic_year: "2026-2027",
+      status: "mismatch_detected",
+      plain_status: "Mismatch found",
+      official_code: "STATUS_MISMATCH_DETECTED",
+      status_color: "red",
+      status_icon: "❌",
+      status_reason: "Land ownership area discrepancy between affidavit and registry deed.",
+      what_to_do_next: "Review side-by-side deed comparison.",
+      deficiency_count: 2,
+      unique_issues_count: 2,
+      pid: "1-1029384753",
+      assurance_score: 0.42,
+      suspicion_score: 0.58,
+      sufficiency: 3
+    },
+    {
+      id: "APP-2026-004",
+      institution_id: "1-1029384754",
+      institution_name: "Visvesvaraya Institute of Technology & Management",
+      category: "EOA_RENEWAL",
+      academic_year: "2026-2027",
+      status: "expired",
+      plain_status: "Expired",
+      official_code: "STATUS_EXPIRED",
+      status_color: "grey",
+      status_icon: "⌛",
+      status_reason: "Fire safety certificate expired on 2025-12-31.",
+      what_to_do_next: "Issue notice for updated fire safety certificate.",
+      deficiency_count: 1,
+      unique_issues_count: 1,
+      pid: "1-1029384754",
+      assurance_score: 0.60,
+      suspicion_score: 0.40,
+      sufficiency: 3
+    },
+    {
+      id: "APP-2026-005",
+      institution_id: "1-1029384755",
+      institution_name: "Chanakya Business & Law Academy",
+      category: "NEW_PROGRAM",
+      academic_year: "2026-2027",
+      status: "verified",
+      plain_status: "Verified",
+      official_code: "STATUS_VERIFIED",
+      status_color: "green",
+      status_icon: "✓",
+      status_reason: "Statutory clearances verified with regulatory board.",
+      what_to_do_next: "Final review ready for approval decision.",
+      deficiency_count: 0,
+      unique_issues_count: 0,
+      pid: "1-1029384755",
+      assurance_score: 0.95,
+      suspicion_score: 0.05,
+      sufficiency: 3
+    }
+  ];
+  state.backendError = false;
+  updateDashboardStatCards();
+  renderAttentionList();
+  renderStatusDonutChart();
+  renderApplicationsGrid();
+  showToast("Loaded sample demonstration data", "info");
+}
+
 // ============================================================================
 // 4. EVENT LISTENERS SETUP
 // ============================================================================
@@ -505,13 +750,14 @@ function switchView(viewId) {
 function setupEventListeners() {
   // Splash Retry and Demo Banner Dismiss Listeners
   document.getElementById("splashCloseBtn")?.addEventListener("click", hideSplash);
-  document.getElementById("splashDismissBtn")?.addEventListener("click", hideSplash);
+  document.getElementById("splashDismissBtn")?.addEventListener("click", () => {
+    hideSplash();
+    loadSampleDataOffline();
+  });
   document.getElementById("splashRetryBtn")?.addEventListener("click", async () => {
-    const ok = await checkBackendHealth();
-    if (ok) {
-      initDemoStatus();
-      loadDashboardData();
-    }
+    isBackendReady = false;
+    isHealthPollingActive = false;
+    await checkBackendHealth();
   });
 
   document.getElementById("dismissDemoBannerBtn")?.addEventListener("click", () => {
