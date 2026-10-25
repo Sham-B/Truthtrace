@@ -49,15 +49,21 @@ def get_current_role(
     """
     effective_role = x_role or x_user_role or "Officer"
     role_normalized = effective_role.strip().capitalize()
-    if role_normalized not in Role.ALL_ROLES:
-        # Fallback check for exact case match
-        for r in Role.ALL_ROLES:
-            if r.lower() == effective_role.strip().lower():
-                return r
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"Invalid role '{effective_role}'. Allowed roles: {', '.join(Role.ALL_ROLES)}"
-        )
+    if role_normalized in Role.ALL_ROLES:
+        return role_normalized
+
+    low = effective_role.strip().lower()
+    if "officer" in low:
+        return Role.OFFICER
+    if "institution" in low or "college" in low:
+        return Role.INSTITUTION
+    if "audit" in low:
+        return Role.AUDITOR
+
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail=f"Invalid role '{effective_role}'. Allowed roles: {', '.join(Role.ALL_ROLES)}"
+    )
     return role_normalized
 
 def require_officer(

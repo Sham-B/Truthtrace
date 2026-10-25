@@ -41,4 +41,6 @@ Track completion of stages across Phases B, C, and D.
 - [x] Stage 3: Frontend for GitHub Pages (relative URLs, config.js with API_BASE and apiUrl/api helpers, startup health splash with retry, slim demo notice banner, sample download link in demo controls & college view, cross-origin tested)
 - [x] Stage 4: GitHub Pages workflow (.github/workflows/pages.yml with push/workflow_dispatch trigger, site copy to _site, config.js injection from vars.API_BASE_URL, .nojekyll, pages deploy steps)
 - [x] Stage 5: Repo hygiene and documentation (.gitignore updated, safe .env.example, Apache-2.0 LICENSE with Sham-B, secret scan clean, README live demo & hosting mode notes, docs/DEPLOYMENT.md guide)
+- [x] Stage 6: Git repository initialized with branch main, remote origin configured, clean logical commits prepared without secrets or storage artifacts
+- [x] Stage 7: Final checks verified (all 29 tests passing, DEMO_MODE/LOW_MEMORY/DISABLE_OCR verified, rate limit & upload caps enforced, health transitions ready=True)
 
