@@ -1,0 +1,83 @@
+name: Deploy Frontend to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: 'pages'
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Prepare site directory and config
+        env:
+          API_BASE_URL: ${{ vars.API_BASE_URL }}
+        run: |
+          mkdir -p _site
+          cp -r frontend/* _site/
+          touch _site/.nojekyll
+
+          # Strip trailing slash if present
+          CLEAN_API_BASE="$(echo "${API_BASE_URL:-}" | sed 's:/*$::')"
+          echo "Configuring API_BASE as: ${CLEAN_API_BASE:-<empty / relative>}"
+
+          cat << 'EOF' > _site/config.template.js
+          /**
+           * TruthTrace Global Configuration (Injected via GitHub Actions)
+           */
+          window.TRUTHTRACE_CONFIG = {
+            API_BASE: "__API_BASE_PLACEHOLDER__"
+          };
+
+          function apiUrl(path) {
+            if (!path) return "";
+            if (path.startsWith("http://") || path.startsWith("https://") || path.startsWith("blob:") || path.startsWith("data:")) {
+              return path;
+            }
+            const base = (window.TRUTHTRACE_CONFIG && window.TRUTHTRACE_CONFIG.API_BASE) || "";
+            const cleanBase = base.replace(/\/+$/, "");
+            const cleanPath = path.startsWith("/") ? path : "/" + path;
+            return cleanBase ? cleanBase + cleanPath : cleanPath;
+          }
+
+          function api(path, options) {
+            return fetch(apiUrl(path), options);
+          }
+
+          window.apiUrl = apiUrl;
+          window.api = api;
+          EOF
+
+          sed "s|__API_BASE_PLACEHOLDER__|${CLEAN_API_BASE}|g" _site/config.template.js > _site/config.js
+          rm _site/config.template.js
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '_site'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
